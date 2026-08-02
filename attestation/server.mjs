@@ -238,8 +238,14 @@ const server = createServer(async (req, res) => {
   );
 });
 
-server.listen(PORT, () => {
-  console.log(`\n  Attestation merchant  http://localhost:${PORT}`);
+// Bind loopback-only by default. This process holds a key that can move
+// PIEUSD, so it must not be reachable from the internet — binding 0.0.0.0
+// exposed it through the box's public IP even though no nginx route pointed
+// at it. Override with ATTEST_BIND=0.0.0.0 only for local testing.
+const BIND = process.env.ATTEST_BIND ?? "127.0.0.1";
+
+server.listen(PORT, BIND, () => {
+  console.log(`\n  Attestation merchant  http://${BIND}:${PORT}`);
   console.log(`  merchant  : ${MERCHANT}`);
   console.log(`  asset     : PIEUSD ${PIEUSD}`);
   console.log(`  price     : ${Number(PRICE_WEI) / 1e18} PIEUSD per attestation`);

@@ -67,8 +67,22 @@ MIN_CONVICTION=${MIN_CONVICTION:-0.15}
 ENVEOF
 chmod 600 .env
 
-pkill -f 'quant-engine.*server' 2>/dev/null || true
-sleep 1
+# Match on the actual command lines. An earlier pattern of
+# 'quant-engine.*server' matched nothing (the cmdline is just
+# "node dist/server.js"), so the old process survived and the new one died on
+# EADDRINUSE while health checks kept passing against the stale build.
+pkill -f "$REMOTE_DIR/dist/server.js" 2>/dev/null || true
+pkill -f 'node dist/server.js' 2>/dev/null || true
+pkill -f 'attestation/server.mjs' 2>/dev/null || true
+sleep 2
+# Fail loudly if the ports are still held rather than starting into a conflict.
+for p in ${ENGINE_PORT} ${ATTEST_PORT}; do
+  if ss -tln 2>/dev/null | grep -q ":\$p "; then
+    echo "!! port \$p still in use after kill:"
+    ss -tlnp 2>/dev/null | grep ":\$p " || true
+    exit 1
+  fi
+done
 
 set -a; . ./.env; set +a
 nohup node attestation/server.mjs > attest.log 2>&1 &

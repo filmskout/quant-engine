@@ -234,17 +234,38 @@ export class Engine {
     }
   }
 
+  /**
+   * Analyse the universe concurrently. Serially this was ~15s per symbol
+   * (dominated by the 0G round-trip), so five symbols meant a 78s page load.
+   * Analysis is independent per symbol, so it fans out.
+   *
+   * `act` and `attestDecision` stay sequential after the fan-in: both mutate
+   * shared guard state (order count, exposure) and spend PIEUSD, so racing them
+   * could overshoot the exposure cap.
+   */
   async tick(topN = 5): Promise<Decision[]> {
     const uni = await this.universe(topN);
+
+    const analysed = await Promise.all(
+      uni.map(async (snap) => {
+        try {
+          return await this.analyse(snap);
+        } catch (e) {
+          // One bad symbol must not kill the sweep.
+          console.error(`[${snap.coin}] ${(e as Error).message}`);
+          return null;
+        }
+      }),
+    );
+
     const out: Decision[] = [];
-    for (const snap of uni) {
+    for (const a of analysed) {
+      if (!a) continue;
       try {
-        const a = await this.analyse(snap);
         const acted = await this.act(a);
         out.push(await this.attestDecision(acted));
       } catch (e) {
-        // One bad symbol must not kill the sweep.
-        console.error(`[${snap.coin}] ${(e as Error).message}`);
+        console.error(`[${a.coin}] act/attest: ${(e as Error).message}`);
       }
     }
     return out;

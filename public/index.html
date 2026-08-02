@@ -201,7 +201,7 @@ function card(d) {
 
 async function load() {
   try {
-    const s = await (await fetch('/api/state')).json();
+    const s = await (await fetch('api/state')).json();
 
     $('hstat').innerHTML =
       `<div class="chip"><div class="dot g"></div>信号源 Hyperliquid 主网</div>
@@ -234,7 +234,7 @@ async function load() {
 
 async function loadLedger() {
   try {
-    const l = await (await fetch('/api/attestations')).json();
+    const l = await (await fetch('api/attestations')).json();
     if (!l.items || !l.items.length) { $('ledger').innerHTML=''; return; }
     $('ledger').innerHTML = `<div class="led">
       <div class="led-h">链上决策存证 · Kite testnet · 共 ${l.count} 条</div>
@@ -251,7 +251,7 @@ async function loadLedger() {
 
 async function forceTick() {
   const b = $('btn'); b.disabled = true; b.textContent = '扫描中…';
-  try { await fetch('/api/scan', {method:'POST'}); await load(); }
+  try { await fetch('api/scan', {method:'POST'}); await load(); }
   finally { b.disabled = false; b.textContent = '立即扫描'; }
 }
 
