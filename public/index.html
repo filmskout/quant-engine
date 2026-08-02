@@ -3,140 +3,303 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quant Engine — 真实信号 · 可验证决策</title>
+<title>Quant Engine — 真实信号 · 可验证决策 · 链上存证</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@600&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#05070d; --panel:rgba(12,18,34,.72); --border:rgba(100,150,255,.16);
-  --cyan:#00e5ff; --purple:#a855f7; --green:#00ff88; --red:#ff3366; --amber:#ffb020;
-  --tx:#e6ecff; --dim:rgba(180,195,235,.55); --faint:rgba(150,165,205,.35);
+  --bg:#04060c; --panel:rgba(11,17,32,.74); --panel2:rgba(15,22,42,.6);
+  --border:rgba(100,150,255,.15); --border2:rgba(100,150,255,.30);
+  --cyan:#00e5ff; --purple:#a855f7; --green:#00ff88; --red:#ff3366;
+  --amber:#ffb020; --jade:#3ddc97; --gold:#e8c26a;
+  --tx:#e6ecff; --dim:rgba(180,195,235,.58); --faint:rgba(150,165,205,.34);
+  --mono:'JetBrains Mono',monospace; --disp:'Orbitron',sans-serif;
 }
-body{background:var(--bg);color:var(--tx);font-family:Rajdhani,system-ui,sans-serif;min-height:100vh}
-body::before{content:'';position:fixed;inset:0;z-index:0;background:
-  radial-gradient(ellipse 90% 60% at 25% 8%,rgba(0,229,255,.07),transparent 60%),
-  radial-gradient(ellipse 80% 60% at 78% 92%,rgba(168,85,247,.07),transparent 60%)}
-.wrap{position:relative;z-index:1;max-width:1500px;margin:0 auto;padding:20px}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:Rajdhani,system-ui,sans-serif;
+  min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:
+  radial-gradient(ellipse 85% 55% at 22% 6%,rgba(0,229,255,.075),transparent 62%),
+  radial-gradient(ellipse 75% 50% at 80% 42%,rgba(168,85,247,.075),transparent 62%),
+  radial-gradient(ellipse 70% 45% at 45% 96%,rgba(61,220,151,.045),transparent 62%)}
+body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.35;
+  background-image:linear-gradient(rgba(100,150,255,.028) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(100,150,255,.028) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(ellipse 100% 70% at 50% 30%,#000 20%,transparent 78%);
+  -webkit-mask-image:radial-gradient(ellipse 100% 70% at 50% 30%,#000 20%,transparent 78%)}
+.wrap{position:relative;z-index:1;max-width:1560px;margin:0 auto;padding:18px 20px 48px}
 
+/* ── shared ── */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:15px;
+  backdrop-filter:blur(15px);position:relative;overflow:hidden}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;z-index:2;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--purple),transparent);opacity:.55}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:13px;flex-wrap:wrap}
+.sec-t{font-family:var(--disp);font-size:12px;letter-spacing:2.4px;text-transform:uppercase;
+  color:var(--cyan);font-weight:700}
+.sec-s{font-size:12.5px;color:var(--dim)}
+.kbd{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:6px;
+  background:rgba(255,255,255,.05);color:var(--dim);border:1px solid var(--border)}
+
+/* ── header ── */
 header{display:flex;align-items:center;justify-content:space-between;gap:16px;
-  padding:14px 20px;background:var(--panel);border:1px solid var(--border);
-  border-radius:14px;backdrop-filter:blur(16px);margin-bottom:14px;flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:12px;font-family:Orbitron;font-weight:700;
-  font-size:16px;letter-spacing:1.5px}
-.mark{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:19px;
-  background:linear-gradient(135deg,var(--cyan),var(--purple));box-shadow:0 0 22px rgba(0,229,255,.35)}
-.brand span{color:var(--cyan)}
-.hstat{display:flex;gap:10px;flex-wrap:wrap}
+  padding:13px 20px;margin-bottom:14px;flex-wrap:wrap;
+  background:var(--panel);border:1px solid var(--border);border-radius:15px;
+  backdrop-filter:blur(18px);position:sticky;top:10px;z-index:40}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:20px;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  box-shadow:0 0 24px rgba(0,229,255,.36);animation:mk 4s ease-in-out infinite}
+@keyframes mk{0%,100%{box-shadow:0 0 24px rgba(0,229,255,.36)}
+  50%{box-shadow:0 0 34px rgba(0,229,255,.5),0 0 56px rgba(168,85,247,.24)}}
+.bname{font-family:var(--disp);font-weight:900;font-size:17px;letter-spacing:1.6px;line-height:1}
+.bname span{color:var(--cyan)}
+.btag{font-size:11px;color:var(--faint);letter-spacing:.4px;margin-top:3px}
+.hstat{display:flex;gap:9px;flex-wrap:wrap}
 .chip{padding:6px 13px;border:1px solid var(--border);border-radius:18px;font-size:11px;
-  font-family:Orbitron;letter-spacing:.5px;display:flex;align-items:center;gap:7px;background:rgba(20,30,60,.35)}
-.dot{width:7px;height:7px;border-radius:50%;animation:p 2s ease-in-out infinite}
+  font-family:var(--disp);letter-spacing:.5px;display:flex;align-items:center;gap:7px;
+  background:rgba(20,30,60,.4)}
+.dot{width:7px;height:7px;border-radius:50%;animation:p 2s ease-in-out infinite;flex:none}
 .dot.g{background:var(--green);box-shadow:0 0 8px var(--green)}
 .dot.c{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
 .dot.a{background:var(--amber);box-shadow:0 0 8px var(--amber)}
 @keyframes p{0%,100%{opacity:1}50%{opacity:.35}}
-button{font-family:Orbitron;font-size:11px;letter-spacing:1px;padding:9px 18px;border:none;
-  border-radius:9px;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--cyan),var(--purple));
-  box-shadow:0 0 18px rgba(0,229,255,.28);transition:.25s}
-button:hover{transform:translateY(-1px)}
-button:disabled{opacity:.5;cursor:wait;transform:none}
+button{font-family:var(--disp);font-size:11px;letter-spacing:1.1px;padding:10px 19px;border:none;
+  border-radius:10px;cursor:pointer;color:#fff;font-weight:700;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));
+  box-shadow:0 0 20px rgba(0,229,255,.3);transition:.25s}
+button:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(0,229,255,.45)}
+button:disabled{opacity:.45;cursor:wait;transform:none}
+.navlinks{display:flex;gap:14px;font-size:12px}
+.navlinks a{color:var(--dim);text-decoration:none;transition:.2s;white-space:nowrap}
+.navlinks a:hover{color:var(--cyan)}
+/* ── explainer / 科普 ── */
+.intro{padding:26px 28px;margin-bottom:14px}
+.intro h1{font-family:var(--disp);font-size:26px;font-weight:900;letter-spacing:.5px;
+  line-height:1.25;margin-bottom:8px;
+  background:linear-gradient(100deg,#fff 10%,var(--cyan) 48%,var(--purple) 88%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.intro .lede{font-size:15px;line-height:1.72;color:var(--dim);max-width:1000px}
+.intro .lede b{color:var(--tx);font-weight:600}
+.pipe{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:20px}
+@media(max-width:1000px){.pipe{grid-template-columns:repeat(2,1fr)}}
+.step{padding:14px 15px;border-radius:12px;background:var(--panel2);
+  border:1px solid var(--border);position:relative;transition:.25s}
+.step:hover{border-color:var(--border2);transform:translateY(-2px)}
+.step .n{font-family:var(--disp);font-size:9.5px;letter-spacing:1.6px;color:var(--purple)}
+.step .t{font-size:14.5px;font-weight:700;margin:6px 0 5px}
+.step .d{font-size:12px;color:var(--dim);line-height:1.55}
+.step .src{margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--faint);
+  word-break:break-all}
+.step.real{border-left:2px solid var(--green)}
+.step.fun{border-left:2px solid var(--gold)}
+.arrowrow{display:flex;justify-content:center;color:var(--faint);font-size:16px}
 
-.banner{padding:12px 18px;border-radius:12px;margin-bottom:14px;font-size:13.5px;line-height:1.55;
-  border:1px solid rgba(255,176,32,.32);background:rgba(255,176,32,.07)}
-.banner b{color:var(--amber)}
-
-.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px}
-.mcard{padding:12px 14px;background:var(--panel);border:1px solid var(--border);border-radius:11px}
-.mlabel{font-size:9.5px;letter-spacing:1.2px;color:var(--faint);text-transform:uppercase;font-family:Orbitron}
-.mval{font-size:15px;font-weight:600;margin-top:5px;font-family:Orbitron;color:var(--cyan);word-break:break-all}
-
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:14px}
-.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;
-  backdrop-filter:blur(14px);position:relative;overflow:hidden}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,var(--cyan),var(--purple),transparent);opacity:.55}
-.chead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
-.coin{font-family:Orbitron;font-size:19px;font-weight:700}
-.px{font-family:Orbitron;font-size:14px;color:var(--dim)}
-.act{padding:4px 11px;border-radius:9px;font-family:Orbitron;font-size:10px;letter-spacing:1px}
-.a-long{background:rgba(0,255,136,.14);color:var(--green);border:1px solid rgba(0,255,136,.35)}
-.a-short{background:rgba(255,51,102,.14);color:var(--red);border:1px solid rgba(255,51,102,.35)}
-.a-hold{background:rgba(150,165,205,.12);color:var(--dim);border:1px solid rgba(150,165,205,.25)}
-
-.bars{display:flex;flex-direction:column;gap:7px;margin:12px 0}
-.row{display:flex;align-items:center;gap:9px;font-size:12px}
-.rl{width:92px;color:var(--dim);font-size:11px}
-.track{flex:1;height:7px;background:rgba(255,255,255,.055);border-radius:4px;position:relative;overflow:hidden}
-.mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.16)}
-.fill{position:absolute;top:0;bottom:0;border-radius:4px;transition:.6s cubic-bezier(.4,0,.2,1)}
-.rv{width:52px;text-align:right;font-family:Orbitron;font-size:11px}
-
-.comp{display:flex;align-items:center;gap:11px;padding:11px;border-radius:11px;
-  background:rgba(255,255,255,.03);margin:11px 0}
-.cnum{font-family:Orbitron;font-size:26px;font-weight:700}
-.cmeta{flex:1;font-size:11.5px;color:var(--dim);line-height:1.45}
-
-.reason{font-size:13px;line-height:1.6;color:var(--tx);padding:11px;border-radius:10px;
-  background:rgba(0,229,255,.05);border-left:2px solid var(--cyan);margin-bottom:9px}
-.inval{font-size:12px;color:var(--dim);padding:9px 11px;border-radius:9px;
-  background:rgba(255,51,102,.05);border-left:2px solid rgba(255,51,102,.45)}
-.inval b{color:var(--red);font-size:10px;font-family:Orbitron;letter-spacing:.8px}
-
-.foot{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;padding-top:11px;
-  border-top:1px solid rgba(255,255,255,.06)}
-.tag{font-size:10px;font-family:Orbitron;padding:4px 9px;border-radius:7px;
-  background:rgba(255,255,255,.04);color:var(--dim);letter-spacing:.4px}
-.tag.ok{color:var(--green);background:rgba(0,255,136,.08)}
-.tag.warn{color:var(--amber);background:rgba(255,176,32,.08)}
-.tag.proof{color:var(--purple);background:rgba(168,85,247,.1);cursor:help}
-.attest{display:block;margin-top:9px;padding:10px 12px;border-radius:10px;text-decoration:none;
-  background:linear-gradient(135deg,rgba(168,85,247,.11),rgba(0,229,255,.07));
-  border:1px solid rgba(168,85,247,.32);transition:.25s}
-.attest:hover{border-color:rgba(168,85,247,.6);box-shadow:0 0 18px rgba(168,85,247,.18)}
-.attest.fail{background:rgba(255,51,102,.06);border-color:rgba(255,51,102,.3);cursor:default}
-.at-l{font-family:Orbitron;font-size:9.5px;letter-spacing:1.2px;color:var(--purple);text-transform:uppercase}
-.at-h{font-family:Orbitron;font-size:10.5px;color:var(--cyan);word-break:break-all;margin:4px 0 3px}
-.at-m{font-size:10.5px;color:var(--dim)}
-.led{background:var(--panel);border:1px solid rgba(168,85,247,.25);border-radius:13px;
-  padding:14px 16px;margin-bottom:14px}
-.led-h{font-family:Orbitron;font-size:11px;letter-spacing:1.6px;color:var(--purple);
-  text-transform:uppercase;margin-bottom:10px}
-.led-r{display:flex;align-items:center;gap:11px;padding:7px 10px;border-radius:8px;
-  background:rgba(255,255,255,.025);margin-bottom:5px;font-size:11.5px;flex-wrap:wrap}
-.led-r a{color:var(--cyan);font-family:Orbitron;font-size:10px;text-decoration:none;word-break:break-all}
-.led-r a:hover{text-decoration:underline}
-.empty{padding:60px 20px;text-align:center;color:var(--faint);font-size:14px}
-.note{font-size:11px;color:var(--faint);margin-top:6px;line-height:1.5}
-
-/* ── hero: market-state sphere, driven by live composite scores ── */
-.hero{position:relative;height:420px;margin-bottom:14px;border-radius:16px;overflow:hidden;
+/* ── hero sphere ── */
+.hero{position:relative;height:430px;margin-bottom:14px;border-radius:16px;overflow:hidden;
   background:var(--panel);border:1px solid var(--border);backdrop-filter:blur(14px)}
 .hero::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;z-index:2;
   background:linear-gradient(90deg,transparent,var(--cyan),var(--purple),transparent);opacity:.6}
 #sphere{position:absolute;inset:0;width:100%;height:100%;display:block}
 .hero-hud{position:absolute;top:14px;left:16px;right:16px;display:flex;
   justify-content:space-between;pointer-events:none;z-index:2;flex-wrap:wrap;gap:8px}
-.hero-t{font-family:Orbitron;font-size:11px;letter-spacing:2px;color:var(--purple);
+.hero-t{font-family:var(--disp);font-size:11px;letter-spacing:2px;color:var(--purple);
   text-transform:uppercase}
 .hero-t span{color:var(--dim);letter-spacing:.6px;text-transform:none;font-size:10.5px}
-.hero-legend{display:flex;gap:12px;font-size:10px;font-family:Orbitron;color:var(--dim)}
+.hero-legend{display:flex;gap:12px;font-size:10px;font-family:var(--disp);color:var(--dim)}
 .hero-legend i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
 .hero-foot{position:absolute;bottom:12px;left:16px;right:16px;z-index:2;
-  display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;gap:10px}
-.hero-stat{font-family:Orbitron;font-size:10.5px;color:var(--dim);
-  background:rgba(5,7,13,.62);border:1px solid var(--border);border-radius:8px;padding:5px 11px;
+  display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;gap:10px;
+  flex-wrap:wrap}
+.hero-stat{font-family:var(--disp);font-size:10.5px;color:var(--dim);
+  background:rgba(4,6,12,.66);border:1px solid var(--border);border-radius:8px;padding:5px 11px;
   backdrop-filter:blur(8px)}
 .hero-stat b{color:var(--cyan);font-weight:500}
+
+/* ── science panel ── */
+.sci{padding:20px 22px;margin-bottom:14px}
+.sci-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:11px}
+.sci-c{padding:15px 16px;border-radius:12px;background:var(--panel2);border:1px solid var(--border)}
+.sci-c h4{font-size:14px;font-weight:700;margin-bottom:3px;display:flex;
+  align-items:center;gap:8px;justify-content:space-between}
+.sci-w{font-family:var(--disp);font-size:10px;padding:2px 8px;border-radius:7px;
+  background:rgba(0,229,255,.1);color:var(--cyan)}
+.sci-c .why{font-size:12.5px;color:var(--dim);line-height:1.6;margin:7px 0 9px}
+.sci-c .f{font-family:var(--mono);font-size:11px;color:var(--jade);background:rgba(0,0,0,.32);
+  padding:8px 10px;border-radius:8px;border-left:2px solid var(--jade);
+  word-break:break-word;line-height:1.55}
+/* ── meta strip ── */
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:10px;margin-bottom:14px}
+.mcard{padding:12px 14px;background:var(--panel);border:1px solid var(--border);border-radius:12px}
+.mlabel{font-size:9.5px;letter-spacing:1.2px;color:var(--faint);text-transform:uppercase;
+  font-family:var(--disp)}
+.mval{font-size:16px;font-weight:600;margin-top:5px;font-family:var(--disp);color:var(--cyan)}
+
+/* ── decision cards ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(452px,1fr));gap:14px;
+  margin-bottom:14px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:15px;padding:17px;
+  backdrop-filter:blur(14px);position:relative;overflow:hidden;transition:.25s}
+.card:hover{border-color:var(--border2)}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--purple),transparent);opacity:.55}
+.chead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.coin{font-family:var(--disp);font-size:20px;font-weight:900}
+.px{font-family:var(--mono);font-size:13px;color:var(--dim);margin-left:7px}
+.act{padding:5px 12px;border-radius:9px;font-family:var(--disp);font-size:10px;letter-spacing:1px;
+  font-weight:700}
+.a-long{background:rgba(0,255,136,.14);color:var(--green);border:1px solid rgba(0,255,136,.35)}
+.a-short{background:rgba(255,51,102,.14);color:var(--red);border:1px solid rgba(255,51,102,.35)}
+.a-hold{background:rgba(150,165,205,.11);color:var(--dim);border:1px solid rgba(150,165,205,.24)}
+
+.cbody{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center}
+@media(max-width:560px){.cbody{grid-template-columns:1fr}}
+.radar{width:150px;height:150px;display:block;margin:0 auto}
+.bars{display:flex;flex-direction:column;gap:7px}
+.row{display:flex;align-items:center;gap:9px;font-size:12px}
+.rl{width:74px;color:var(--dim);font-size:11.5px;flex:none}
+.track{flex:1;height:7px;background:rgba(255,255,255,.055);border-radius:4px;position:relative;
+  overflow:hidden}
+.mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.16)}
+.fill{position:absolute;top:0;bottom:0;border-radius:4px;transition:.6s cubic-bezier(.4,0,.2,1)}
+.rv{width:52px;text-align:right;font-family:var(--mono);font-size:11px;flex:none}
+
+.comp{display:flex;align-items:center;gap:12px;padding:11px;border-radius:11px;
+  background:rgba(255,255,255,.028);margin:12px 0 10px}
+.cnum{font-family:var(--disp);font-size:27px;font-weight:900;line-height:1}
+.cmeta{flex:1;font-size:11.5px;color:var(--dim);line-height:1.45}
+.reason{font-size:13px;line-height:1.62;padding:11px;border-radius:10px;
+  background:rgba(0,229,255,.05);border-left:2px solid var(--cyan);margin-bottom:9px}
+.inval{font-size:12px;color:var(--dim);padding:9px 11px;border-radius:9px;
+  background:rgba(255,51,102,.05);border-left:2px solid rgba(255,51,102,.42)}
+.inval b{color:var(--red);font-size:10px;font-family:var(--disp);letter-spacing:.8px}
+.foot{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;padding-top:11px;
+  border-top:1px solid rgba(255,255,255,.06)}
+.tag{font-size:10px;font-family:var(--disp);padding:4px 9px;border-radius:7px;
+  background:rgba(255,255,255,.04);color:var(--dim);letter-spacing:.4px}
+.tag.ok{color:var(--green);background:rgba(0,255,136,.08)}
+.tag.warn{color:var(--amber);background:rgba(255,176,32,.08)}
+.tag.proof{color:var(--purple);background:rgba(168,85,247,.1);cursor:help}
+.attest{display:block;margin-top:9px;padding:10px 12px;border-radius:10px;text-decoration:none;
+  background:linear-gradient(135deg,rgba(168,85,247,.11),rgba(0,229,255,.07));
+  border:1px solid rgba(168,85,247,.3);transition:.25s}
+.attest:hover{border-color:rgba(168,85,247,.6);box-shadow:0 0 18px rgba(168,85,247,.18)}
+.attest.fail{background:rgba(255,51,102,.06);border-color:rgba(255,51,102,.28);cursor:default}
+.at-l{font-family:var(--disp);font-size:9.5px;letter-spacing:1.2px;color:var(--purple);
+  text-transform:uppercase}
+.at-h{font-family:var(--mono);font-size:10.5px;color:var(--cyan);word-break:break-all;margin:4px 0 3px}
+.at-m{font-size:10.5px;color:var(--dim)}
+/* ── 玄学对照层 · visually separated on purpose: warm gold vs the cyan/violet
+      of everything that actually drives a trade, so it can never be mistaken
+      for signal at a glance ── */
+.myst{padding:20px 22px;margin-bottom:14px;border:1px solid rgba(232,194,106,.26);
+  background:linear-gradient(180deg,rgba(38,30,14,.5),rgba(11,17,32,.72))}
+.myst::before{background:linear-gradient(90deg,transparent,var(--gold),transparent)!important;
+  opacity:.55}
+.myst .sec-t{color:var(--gold)}
+.warnbar{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-radius:11px;
+  background:rgba(255,176,32,.09);border:1px solid rgba(255,176,32,.3);margin-bottom:15px;
+  font-size:12.5px;line-height:1.62;color:var(--dim)}
+.warnbar b{color:var(--amber)}
+.myst-grid{display:grid;grid-template-columns:250px 1fr 260px;gap:14px}
+@media(max-width:1150px){.myst-grid{grid-template-columns:1fr}}
+.wuxing{position:relative;width:230px;height:230px;margin:0 auto}
+#wuxingCv{width:100%;height:100%;display:block}
+.pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.pil{text-align:center;padding:11px 6px;border-radius:11px;background:rgba(232,194,106,.06);
+  border:1px solid rgba(232,194,106,.2)}
+.pil .lb{font-size:9.5px;color:var(--faint);font-family:var(--disp);letter-spacing:1px}
+.pil .gz{font-family:'Noto Serif SC',serif;font-size:25px;font-weight:600;color:var(--gold);
+  line-height:1.15;margin-top:5px;text-shadow:0 0 16px rgba(232,194,106,.35)}
+.pil .el{font-size:10.5px;color:var(--dim);margin-top:3px}
+.mrow{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:11px}
+.mbadge{padding:6px 12px;border-radius:9px;font-size:12px;background:rgba(232,194,106,.08);
+  border:1px solid rgba(232,194,106,.22);color:var(--gold)}
+.mbadge s{text-decoration:none;color:var(--dim);font-size:10.5px}
+.narr{font-size:13px;line-height:1.75;color:var(--dim);padding:12px 14px;border-radius:11px;
+  background:rgba(0,0,0,.24);border-left:2px solid var(--gold)}
+.gauge{text-align:center;padding:14px}
+#agCv{width:190px;height:120px;display:block;margin:0 auto}
+.g-num{font-family:var(--disp);font-size:31px;font-weight:900;color:var(--gold);margin-top:-30px}
+.g-lb{font-size:11.5px;color:var(--dim);margin-top:6px;line-height:1.6}
+.g-lb b{color:var(--tx)}
+.vs{display:flex;gap:8px;margin-top:12px;font-size:11.5px}
+.vs>div{flex:1;text-align:center;padding:9px 6px;border-radius:9px;background:rgba(0,0,0,.24)}
+.vs .k{font-family:var(--disp);font-size:9.5px;color:var(--faint);letter-spacing:.9px}
+.vs .v{font-family:var(--mono);font-size:14px;margin-top:4px}
+
+/* ── ledger ── */
+.led{padding:15px 17px;margin-bottom:14px}
+.led-r{display:flex;align-items:center;gap:11px;padding:7px 10px;border-radius:8px;
+  background:rgba(255,255,255,.022);margin-bottom:5px;font-size:11.5px;flex-wrap:wrap}
+.led-r a{color:var(--cyan);font-family:var(--mono);font-size:10px;text-decoration:none;
+  word-break:break-all}
+.led-r a:hover{text-decoration:underline}
+.empty{padding:56px 20px;text-align:center;color:var(--faint);font-size:14px}
+.note{font-size:11.5px;color:var(--faint);margin-top:7px;line-height:1.6}
+footer{padding:20px 22px;font-size:12px;color:var(--faint);line-height:1.75;
+  border-radius:14px;background:var(--panel);border:1px solid var(--border)}
+footer b{color:var(--amber)}
 </style>
 </head>
 <body>
 <div class="wrap">
-
   <header>
-    <div class="brand"><div class="mark">Ψ</div><div>QUANT <span>ENGINE</span></div></div>
+    <div class="brand">
+      <div class="mark">Ψ</div>
+      <div>
+        <div class="bname">QUANT <span>ENGINE</span></div>
+        <div class="btag">真实信号 · 可验证推理 · 链上存证</div>
+      </div>
+    </div>
+    <div class="navlinks">
+      <a href="#what">这是什么</a><a href="#sci">科学依据</a>
+      <a href="#decisions">实时决策</a><a href="#myst">玄学对照</a><a href="#chain">链上存证</a>
+    </div>
     <div class="hstat" id="hstat"></div>
-    <button id="btn" onclick="forceTick()">立即扫描</button>
+    <button id="btn" onclick="forceScan()">立即扫描</button>
   </header>
 
+  <!-- ── 科普 ── -->
+  <section class="panel intro" id="what">
+    <h1>把一次交易决策，变成事后无法抵赖的记录</h1>
+    <p class="lede">
+      多数「AI 量化」你只能看到结论。这里把整条链路拆开摆出来：
+      <b>数据从哪来</b>、<b>分数怎么算</b>、<b>谁复核的</b>、<b>为什么没下单</b>，
+      最后把决策哈希在结果揭晓<b>之前</b>写进区块链——事后改不了，也赖不掉。
+      当前行情若不够强，它会直接说「观望」，而不是硬凑一笔交易给你看。
+    </p>
+    <div class="pipe">
+      <div class="step real">
+        <div class="n">01 · 数据</div><div class="t">真实市场输入</div>
+        <div class="d">价格、资金费率、持仓量、盘口 1% 深度，全部取自 Hyperliquid 主网公开接口。</div>
+        <div class="src">api.hyperliquid.xyz/info</div>
+      </div>
+      <div class="step real">
+        <div class="n">02 · 打分</div><div class="t">五维综合评分</div>
+        <div class="d">复刻 Mentis 公开权重方法论，确定性计算，同样输入必得同样输出。</div>
+        <div class="src">聪明钱30 技术25 资金流25 情绪20 风险-20</div>
+      </div>
+      <div class="step real">
+        <div class="n">03 · 复核</div><div class="t">TEE 内 AI 复核</div>
+        <div class="d">0G Private Computer 在可信执行环境里复核，每条建议带回 proofRef。</div>
+        <div class="src">router-api.0g.ai · verify_tee</div>
+      </div>
+      <div class="step real">
+        <div class="n">04 · 风控</div><div class="t">失败即拒的闸门</div>
+        <div class="d">单笔/总敞口/冲击成本/回撤熔断。任何一项无法判定就拦截，不放行。</div>
+        <div class="src">fail-closed guards</div>
+      </div>
+      <div class="step real">
+        <div class="n">05 · 存证</div><div class="t">决策哈希上链</div>
+        <div class="d">经 x402 + EIP-3009 付费写入 Kite 测试链，可在区块浏览器逐笔核对。</div>
+        <div class="src">kite-testnet · 0.01 PIEUSD/次</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 市场态球 ── -->
   <div class="hero">
     <canvas id="sphere"></canvas>
     <div class="hero-hud">
@@ -155,25 +318,117 @@ button:disabled{opacity:.5;cursor:wait;transform:none}
       <div class="hero-stat">存证 <b id="hStatAtt">—</b></div>
     </div>
   </div>
-
-  <div class="banner" id="banner">加载中…</div>
+  <!-- ── 科学依据 ── -->
+  <section class="panel sci" id="sci">
+    <div class="sec-h">
+      <div class="sec-t">科学依据 · Why each dimension</div>
+      <div class="sec-s">每一维都可独立验算——下面是它测什么、为什么有用、以及实际用的公式</div>
+    </div>
+    <div class="sci-grid">
+      <div class="sci-c">
+        <h4>聪明钱 Smart Money<span class="sci-w">权重 30%</span></h4>
+        <div class="why">追踪长期盈利钱包的净方向。真实实现需要有标注的钱包集——那是需要授权的数据源，
+          <b style="color:var(--amber)">当前为零权重占位</b>，不编造。杠杆过高时反而降权：拥挤的高杠杆仓位是反向信号，不是跟随信号。</div>
+        <div class="f">score = netBias × (winRate−0.5)×2 × log₁₀(notional)/7 × (lev&gt;10 ? 0.5 : 1)</div>
+      </div>
+      <div class="sci-c">
+        <h4>技术面 Technical<span class="sci-w">权重 25%</span></h4>
+        <div class="why">均值回归与趋势两股力量<b>故意对冲</b>：价格偏离均线越远越倾向回归，趋势斜率越陡越倾向延续。
+          再用已实现波动率整体缩放——高波动下技术信号质量本就下降。</div>
+        <div class="f">0.3·(−4·maDev) + 0.3·rsiSignal + 0.4·trend，再 × 1/(1+max(0,σ−0.5))</div>
+      </div>
+      <div class="sci-c">
+        <h4>资金流 Flow<span class="sci-w">权重 25%</span></h4>
+        <div class="why">极端资金费率意味着一侧过度拥挤，<b>反向计分</b>；持仓量上升则确认吃单方向。
+          两者相乘，只有「有人在加仓且方向明确」时才给高分。</div>
+        <div class="f">0.5·(−200·funding) + 0.5·(2·ΔOI × takerImbalance)</div>
+      </div>
+      <div class="sci-c">
+        <h4>风险罚分 Risk<span class="sci-w">权重 −20%</span></h4>
+        <div class="why">清算簇距离、盘口深度、事件窗口三项累加。关键设计：罚分是<b>把信号压向零</b>，
+          不会翻转方向——危险的形态应该是「别做」，绝不该变成「反着做」。</div>
+        <div class="f">composite = raw × (1 − penalty)，penalty ∈ [0,1]</div>
+      </div>
+      <div class="sci-c">
+        <h4>盘口深度 Depth<span class="sci-w">硬约束</span></h4>
+        <div class="why">真实遍历 L2 订单簿累加 1% 价格区间内的名义金额。深度不足 25 万美元时，
+          仓位<b>强制封顶 10%</b>——薄盘口里滑点会吃光任何 alpha。</div>
+        <div class="f">Σ px×sz where |px−best|/best ≤ 1%</div>
+      </div>
+      <div class="sci-c">
+        <h4>冲击成本 Impact<span class="sci-w">硬约束</span></h4>
+        <div class="why">下单前逐档吃单模拟，算出真实成交均价与最优价的偏离。超过 0.5% 直接拦截——
+          这是<b>下单前</b>就能知道的成本，没有理由承担。</div>
+        <div class="f">impact = |avgFillPx − topPx| / topPx</div>
+      </div>
+    </div>
+    <div class="note">全部为确定性计算：同样的输入必然得到同样的输出，可复算、可审计。源码见 GitHub。</div>
+  </section>
 
   <div class="meta" id="meta"></div>
-  <div id="ledger"></div>
-  <div class="grid" id="grid"><div class="empty">正在拉取真实市场数据…</div></div>
-</div>
 
+  <!-- ── 实时决策 ── -->
+  <section id="decisions">
+    <div class="sec-h">
+      <div class="sec-t">实时决策 · Live Decisions</div>
+      <div class="sec-s">雷达图为五维评分形状；低于阈值时引擎返回「观望」，这是正常且正确的结果</div>
+    </div>
+    <div class="grid" id="grid"><div class="empty">正在拉取真实市场数据…</div></div>
+  </section>
+
+  <!-- ── 玄学对照层 ── -->
+  <section class="panel myst" id="myst">
+    <div class="sec-h">
+      <div class="sec-t">玄学对照层 · Metaphysics Comparison</div>
+      <div class="sec-s">八字 · 紫微斗数 · MBTI</div>
+    </div>
+    <div class="warnbar">
+      <span style="font-size:17px;line-height:1">⚠</span>
+      <div><b>这一层不参与任何交易决策。</b>
+        八字、紫微、MBTI 对金融市场没有已证实的预测力，因此它与驱动交易的综合评分在代码层面<b>完全隔离</b>
+        （<span class="kbd">metaphysics.ts</span> 从不被评分模块引用，且在 composite 算完之后才计算）。
+        保留它有两个正当理由：一是文化视觉表达；二是并排跑起来后，
+        右侧的<b>一致率</b>就是一个用真实数据做的科普实验——样本足够时它应该收敛到 50% 上下，也就是抛硬币。
+        <br>顺带一提：干支纪日是确定性历法算术，下面的四柱是<b>真算的</b>，已用 2000-01-01 戊午等已知日期校验。</div>
+    </div>
+    <div class="myst-grid">
+      <div>
+        <div class="wuxing"><canvas id="wuxingCv"></canvas></div>
+        <div class="note" style="text-align:center">四柱五行分布 · 生克关系</div>
+      </div>
+      <div>
+        <div class="pillars" id="pillars"></div>
+        <div class="mrow" id="mrow"></div>
+        <div class="narr" id="narr">—</div>
+      </div>
+      <div class="gauge">
+        <canvas id="agCv"></canvas>
+        <div class="g-num" id="agNum">—</div>
+        <div class="g-lb">玄学与量化<b>方向一致率</b><br>
+          <span id="agSub" style="font-family:var(--mono);font-size:11px">样本累积中…</span></div>
+        <div class="vs">
+          <div><div class="k">量化方向</div><div class="v" id="vsQ">—</div></div>
+          <div><div class="k">玄学方向</div><div class="v" id="vsO">—</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 链上存证 ── -->
+  <section id="chain"><div id="ledger"></div></section>
+
+  <footer>
+    <b>免责声明</b> — 本系统为研究与演示原型，不构成投资建议。执行层指向 Hyperliquid 测试网，
+    不涉及真实资金；实盘开关需精确字符串显式武装。综合评分是研究工具，不是策略，本仓库尚未包含回测。
+    模拟与测试网结果不预示实盘表现。玄学对照层为娱乐与科普用途，不参与决策。
+  </footer>
+
+</div>
 <script>
 // ═══════════════════════════════════════════════════════════════
-//  Market-state sphere.
-//  Ported from the standalone quantum visualisation, but every
-//  parameter here is bound to live data instead of Math.random():
-//    - orbit radius   <- |composite|
-//    - node colour    <- sign(composite)
-//    - node size      <- log(depth within 1%)
-//    - core intensity <- share of actionable signals
-//    - shell density  <- mean confidence
-//  A quiet market therefore *looks* quiet, which is the point.
+//  Market-state sphere. Ported from the standalone prototype, but every
+//  parameter is bound to live data instead of random values, so a quiet
+//  market renders as a quiet picture.
 // ═══════════════════════════════════════════════════════════════
 const SV = (() => {
   const cv = document.getElementById('sphere');
@@ -374,63 +629,238 @@ const $ = id => document.getElementById(id);
 const fmt = n => n >= 1e9 ? '$'+(n/1e9).toFixed(2)+'B'
               : n >= 1e6 ? '$'+(n/1e6).toFixed(2)+'M'
               : n >= 1e3 ? '$'+(n/1e3).toFixed(1)+'K' : '$'+Number(n).toFixed(2);
+const ATTESTED = new Set();
 
+// ── radar: the five score dimensions as a shape you can compare at a glance ──
+const RADAR_AXES = [
+  { k: 'smartMoney', l: '聪明钱' }, { k: 'technical', l: '技术' },
+  { k: 'flow', l: '资金流' }, { k: 'sentiment', l: '情绪' },
+  { k: 'riskPenalty', l: '风险', invert: true },
+];
+
+function drawRadar(cv, score) {
+  const dpr = devicePixelRatio || 1, S = 150;
+  cv.width = S * dpr; cv.height = S * dpr;
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, S, S);
+  const cx = S / 2, cy = S / 2, R = S * 0.34, n = RADAR_AXES.length;
+  const ang = i => -Math.PI / 2 + i * 2 * Math.PI / n;
+
+  for (let ring = 1; ring <= 3; ring++) {
+    g.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const a = ang(i % n), r = R * ring / 3;
+      const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+      i ? g.lineTo(x, y) : g.moveTo(x, y);
+    }
+    g.closePath();
+    g.strokeStyle = `rgba(100,150,255,${ring === 3 ? .22 : .1})`;
+    g.lineWidth = 1; g.stroke();
+  }
+  for (let i = 0; i < n; i++) {
+    const a = ang(i);
+    g.beginPath(); g.moveTo(cx, cy);
+    g.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+    g.strokeStyle = 'rgba(100,150,255,.1)'; g.stroke();
+    g.font = '9px Rajdhani, sans-serif';
+    g.fillStyle = 'rgba(180,195,235,.55)';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(RADAR_AXES[i].l, cx + Math.cos(a) * (R + 13), cy + Math.sin(a) * (R + 11));
+  }
+
+  // values normalised to 0..1; risk is inverted so "outward = healthier"
+  const vals = RADAR_AXES.map(ax => {
+    const raw = Number(score[ax.k] ?? 0);
+    return ax.invert ? 1 - Math.min(1, Math.abs(raw))
+                     : Math.min(1, (raw + 1) / 2);
+  });
+  g.beginPath();
+  vals.forEach((v, i) => {
+    const a = ang(i), r = Math.max(.04, v) * R;
+    const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    i ? g.lineTo(x, y) : g.moveTo(x, y);
+  });
+  g.closePath();
+  const pos = score.composite >= 0;
+  const grd = g.createRadialGradient(cx, cy, 0, cx, cy, R);
+  grd.addColorStop(0, pos ? 'rgba(0,255,136,.34)' : 'rgba(255,51,102,.34)');
+  grd.addColorStop(1, pos ? 'rgba(0,255,136,.06)' : 'rgba(255,51,102,.06)');
+  g.fillStyle = grd; g.fill();
+  g.strokeStyle = pos ? 'rgba(0,255,136,.85)' : 'rgba(255,51,102,.85)';
+  g.lineWidth = 1.6; g.shadowBlur = 9;
+  g.shadowColor = pos ? 'rgba(0,255,136,.6)' : 'rgba(255,51,102,.6)';
+  g.stroke(); g.shadowBlur = 0;
+  vals.forEach((v, i) => {
+    const a = ang(i), r = Math.max(.04, v) * R;
+    g.beginPath(); g.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 2.3, 0, 6.283);
+    g.fillStyle = pos ? '#00ff88' : '#ff3366'; g.fill();
+  });
+}
+// ── 五行 wheel: outer ring = generating cycle (相生), inner star = overcoming (相克)
+const WX = [
+  { k: 'wood',  zh: '木', c: '#3ddc97' }, { k: 'fire',  zh: '火', c: '#ff5a4d' },
+  { k: 'earth', zh: '土', c: '#e8c26a' }, { k: 'metal', zh: '金', c: '#d8dee9' },
+  { k: 'water', zh: '水', c: '#5aa9ff' },
+];
+let wxT = 0, wxData = null;
+
+function drawWuxing() {
+  const cv = $('wuxingCv'); if (!cv) return;
+  const dpr = devicePixelRatio || 1, S = 230;
+  if (cv.width !== S * dpr) { cv.width = S * dpr; cv.height = S * dpr; }
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, S, S);
+  wxT += 0.006;
+
+  const cx = S / 2, cy = S / 2, R = S * 0.33;
+  const counts = wxData?.elements ?? { wood:0, fire:0, earth:0, metal:0, water:0 };
+  const max = Math.max(1, ...Object.values(counts));
+  const pos = i => {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / 5 + wxT * 0.18;
+    return { x: cx + Math.cos(a) * R, y: cy + Math.sin(a) * R };
+  };
+
+  // 相生 — the generating cycle runs around the pentagon
+  g.beginPath();
+  for (let i = 0; i <= 5; i++) { const p = pos(i % 5); i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y); }
+  g.closePath();
+  g.strokeStyle = 'rgba(232,194,106,.28)'; g.lineWidth = 1.2; g.stroke();
+
+  // 相克 — the overcoming cycle is the pentagram inside it
+  g.beginPath();
+  for (let i = 0; i <= 5; i++) { const p = pos((i * 2) % 5); i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y); }
+  g.closePath();
+  g.strokeStyle = 'rgba(255,90,77,.16)'; g.lineWidth = 1; g.stroke();
+
+  WX.forEach((w, i) => {
+    const p = pos(i);
+    const cnt = counts[w.k] ?? 0;
+    const strength = cnt / max;
+    const rad = 12 + strength * 13;
+    const pulse = .72 + .28 * Math.sin(wxT * 2.1 + i);
+
+    const gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad * 2.1);
+    gr.addColorStop(0, w.c + Math.round(90 * strength * pulse).toString(16).padStart(2, '0'));
+    gr.addColorStop(1, 'transparent');
+    g.fillStyle = gr;
+    g.beginPath(); g.arc(p.x, p.y, rad * 2.1, 0, 6.283); g.fill();
+
+    g.beginPath(); g.arc(p.x, p.y, rad, 0, 6.283);
+    g.fillStyle = `rgba(4,6,12,.82)`; g.fill();
+    g.strokeStyle = w.c; g.lineWidth = 1.4 + strength;
+    g.globalAlpha = .55 + strength * .45; g.stroke(); g.globalAlpha = 1;
+
+    g.font = `600 ${14 + strength * 5}px 'Noto Serif SC', serif`;
+    g.fillStyle = w.c; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(w.zh, p.x, p.y);
+    g.font = '9px JetBrains Mono, monospace';
+    g.fillStyle = 'rgba(180,195,235,.62)';
+    g.fillText(String(cnt), p.x, p.y + rad + 9);
+  });
+
+  if (wxData?.dominant) {
+    g.font = "600 12px 'Noto Serif SC', serif";
+    g.fillStyle = 'rgba(232,194,106,.9)';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    const dz = WX.find(w => w.k === wxData.dominant);
+    g.fillText(`${dz ? dz.zh : ''}旺`, cx, cy - 7);
+    g.font = '9.5px Rajdhani, sans-serif';
+    g.fillStyle = 'rgba(180,195,235,.5)';
+    g.fillText('日主', cx, cy + 9);
+  }
+  requestAnimationFrame(drawWuxing);
+}
+requestAnimationFrame(drawWuxing);
+
+// ── agreement gauge: the honest payoff of the metaphysics layer ──
+function drawGauge(rate, samples) {
+  const cv = $('agCv'); if (!cv) return;
+  const dpr = devicePixelRatio || 1, W = 190, H = 120;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const g = cv.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const cx = W / 2, cy = H - 16, R = 74;
+
+  g.beginPath(); g.arc(cx, cy, R, Math.PI, 0);
+  g.strokeStyle = 'rgba(255,255,255,.07)'; g.lineWidth = 11; g.stroke();
+
+  // the 50% mark is the interesting line: coin-flip
+  const half = Math.PI + Math.PI * 0.5;
+  g.beginPath();
+  g.moveTo(cx + Math.cos(half) * (R - 9), cy + Math.sin(half) * (R - 9));
+  g.lineTo(cx + Math.cos(half) * (R + 9), cy + Math.sin(half) * (R + 9));
+  g.strokeStyle = 'rgba(255,255,255,.32)'; g.lineWidth = 1.4; g.stroke();
+  g.font = '8.5px JetBrains Mono, monospace';
+  g.fillStyle = 'rgba(180,195,235,.5)'; g.textAlign = 'center';
+  g.fillText('50% 抛硬币', cx, cy - R - 6);
+
+  if (samples > 0) {
+    const end = Math.PI + Math.PI * Math.max(0, Math.min(1, rate));
+    g.beginPath(); g.arc(cx, cy, R, Math.PI, end);
+    const grd = g.createLinearGradient(cx - R, 0, cx + R, 0);
+    grd.addColorStop(0, '#e8c26a'); grd.addColorStop(1, '#ffb020');
+    g.strokeStyle = grd; g.lineWidth = 11; g.lineCap = 'round';
+    g.shadowBlur = 13; g.shadowColor = 'rgba(232,194,106,.55)';
+    g.stroke(); g.shadowBlur = 0;
+  }
+}
 function bar(label, v, span) {
-  // v in -1..1 (or 0..1 for risk). span=true renders a centered signed bar.
   const pct = Math.min(100, Math.abs(v) * 100);
   const col = span ? (v >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--amber)';
-  const style = span
-    ? (v >= 0 ? `left:50%;width:${pct/2}%` : `right:50%;width:${pct/2}%`)
-    : `left:0;width:${pct}%`;
-  return `<div class="row">
-    <span class="rl">${label}</span>
-    <div class="track">${span?'<div class="mid"></div>':''}<div class="fill" style="${style};background:${col}"></div></div>
-    <span class="rv" style="color:${col}">${v>=0&&span?'+':''}${v.toFixed(3)}</span>
-  </div>`;
+  const style = span ? (v >= 0 ? `left:50%;width:${pct/2}%` : `right:50%;width:${pct/2}%`)
+                     : `left:0;width:${pct}%`;
+  return `<div class="row"><span class="rl">${label}</span>
+    <div class="track">${span?'<div class="mid"></div>':''}
+    <div class="fill" style="${style};background:${col}"></div></div>
+    <span class="rv" style="color:${col}">${v>=0&&span?'+':''}${v.toFixed(3)}</span></div>`;
 }
 
-function card(d) {
+function card(d, idx) {
   const a = d.rec.action;
   const cls = a==='open_long'?'a-long':a==='open_short'?'a-short':'a-hold';
   const label = {open_long:'做多',open_short:'做空',close:'平仓',hold:'观望'}[a] || a;
   const cc = d.score.composite >= 0 ? 'var(--green)' : 'var(--red)';
 
-  const tags = [];
-  tags.push(`<span class="tag">深度1% ${fmt(d.depth1pctUsd)}</span>`);
-  tags.push(`<span class="tag ${d.brain.source==='0g'?'ok':'warn'}">大脑 ${d.brain.source==='0g'?('0G '+(d.brain.model||'')):'规则兜底'}</span>`);
+  const tags = [`<span class="tag">深度1% ${fmt(d.depth1pctUsd)}</span>`];
+  tags.push(`<span class="tag ${d.brain.source==='0g'?'ok':'warn'}">大脑 ${
+    d.brain.source==='0g'?('0G '+(d.brain.model||'')):'规则兜底'}</span>`);
   if (d.brain.proofRef)
-    tags.push(`<span class="tag proof" title="0G TEE 推理凭证。目前 0G 尚无独立校验端点，此为可追溯引用，非已验证证明。">proofRef ${String(d.brain.proofRef).slice(0,14)}…</span>`);
+    tags.push(`<span class="tag proof" title="0G TEE 推理凭证。0G 目前尚无独立校验端点,此为可追溯引用,非已验证证明。">proofRef ${String(d.brain.proofRef).slice(0,14)}…</span>`);
   if (d.guards) {
-    tags.push(`<span class="tag ${d.guards.allowed?'ok':''}">风控 ${d.guards.allowed?'放行 '+fmt(d.guards.notionalUsd):'拦截'}</span>`);
-    (d.guards.reasons||[]).slice(0,2).forEach(r => tags.push(`<span class="tag warn">${r}</span>`));
+    tags.push(`<span class="tag ${d.guards.allowed?'ok':''}">风控 ${
+      d.guards.allowed?'放行 '+fmt(d.guards.notionalUsd):'拦截'}</span>`);
+    (d.guards.reasons||[]).slice(0,2).forEach(r=>tags.push(`<span class="tag warn">${r}</span>`));
   }
-  if (d.fill) {
-    tags.push(d.fill.ok
-      ? `<span class="tag ${d.fill.simulated?'warn':'ok'}">${d.fill.simulated?'影子成交':'真实成交'} ${d.fill.filledSz.toFixed(4)} @ ${d.fill.avgPx.toFixed(2)}</span>`
-      : `<span class="tag warn">未成交: ${(d.fill.error||'').slice(0,60)}</span>`);
-  }
+  if (d.fill) tags.push(d.fill.ok
+    ? `<span class="tag ${d.fill.simulated?'warn':'ok'}">${d.fill.simulated?'影子成交':'真实成交'} ${d.fill.filledSz.toFixed(4)} @ ${d.fill.avgPx.toFixed(2)}</span>`
+    : `<span class="tag warn">未成交: ${(d.fill.error||'').slice(0,54)}</span>`);
 
   const at = d.attestation;
   const atBlock = at && at.paid
     ? `<a class="attest" href="${at.explorerUrl}" target="_blank" rel="noopener">
          <div class="at-l">链上存证 · Kite testnet</div>
          <div class="at-h">${at.txHash}</div>
-         <div class="at-m">决策哈希 ${String(at.decisionHash||'').slice(0,22)}… · 已付 ${(Number(at.amountWei)/1e18).toFixed(2)} PIEUSD · 点击在浏览器查看</div>
-       </a>`
-    : at
-      ? `<div class="attest fail"><div class="at-l">链上存证失败</div><div class="at-m">${at.error||'未知错误'}</div></div>`
-      : '';
+         <div class="at-m">决策哈希 ${String(at.decisionHash||'').slice(0,22)}… · 已付 ${(Number(at.amountWei)/1e18).toFixed(2)} PIEUSD · 点击核验</div></a>`
+    : at ? `<div class="attest fail"><div class="at-l">链上存证失败</div>
+             <div class="at-m">${at.errorReason||at.error||'未知错误'}</div></div>` : '';
 
   return `<div class="card">
     <div class="chead">
-      <div><span class="coin">${d.coin}</span> <span class="px">$${d.markPx.toLocaleString()}</span></div>
+      <div><span class="coin">${d.coin}</span><span class="px">$${d.markPx.toLocaleString()}</span></div>
       <span class="act ${cls}">${label}${d.rec.sizePct>0?' '+d.rec.sizePct.toFixed(0)+'%':''}</span>
     </div>
-    <div class="bars">
-      ${bar('聪明钱', d.score.smartMoney, true)}
-      ${bar('技术面', d.score.technical, true)}
-      ${bar('资金流', d.score.flow, true)}
-      ${bar('风险罚分', d.score.riskPenalty, false)}
+    <div class="cbody">
+      <canvas class="radar" data-i="${idx}"></canvas>
+      <div class="bars">
+        ${bar('聪明钱', d.score.smartMoney, true)}
+        ${bar('技术面', d.score.technical, true)}
+        ${bar('资金流', d.score.flow, true)}
+        ${bar('情绪', d.score.sentiment, true)}
+        ${bar('风险罚分', d.score.riskPenalty, false)}
+      </div>
     </div>
     <div class="comp">
       <div class="cnum" style="color:${cc}">${d.score.composite>=0?'+':''}${d.score.composite.toFixed(3)}</div>
@@ -444,47 +874,74 @@ function card(d) {
   </div>`;
 }
 
+function renderMyst(d) {
+  if (!d?.omen) return;
+  const o = d.omen, b = o.bazi;
+  wxData = b;
+  const P = [['年柱',b.year],['月柱',b.month],['日柱',b.day],['时柱',b.hour]];
+  const EL = {wood:'木',fire:'火',earth:'土',metal:'金',water:'水'};
+  $('pillars').innerHTML = P.map(([lb,p])=>`<div class="pil">
+    <div class="lb">${lb}</div><div class="gz">${p.stem}${p.branch}</div>
+    <div class="el">${EL[p.stemElement]}·${EL[p.branchElement]}</div></div>`).join('');
+  $('mrow').innerHTML = `
+    <div class="mbadge">${b.shichen} <s>时辰</s></div>
+    <div class="mbadge">紫微 ${o.ziwei.star} <s>坐${o.ziwei.palace}·${o.ziwei.brightness}</s></div>
+    <div class="mbadge">财帛宫 ${o.ziwei.wealthPalace}</div>
+    <div class="mbadge">MBTI ${o.mbti.type} <s>${o.mbti.label}</s></div>
+    <div class="mbadge">玄学读数 ${o.omenScore>=0?'+':''}${o.omenScore.toFixed(3)} <s>${
+      {long:'偏多',short:'偏空',flat:'中性'}[o.direction]}</s></div>`;
+  $('narr').textContent = o.narrative;
+
+  const ag = d.omenAgreement || { rate:0, samples:0 };
+  drawGauge(ag.rate, ag.samples);
+  $('agNum').textContent = ag.samples ? (ag.rate*100).toFixed(0)+'%' : '—';
+  $('agSub').textContent = ag.samples
+    ? `${ag.agreements}/${ag.samples} 次方向一致`
+    : '样本累积中…';
+  $('vsQ').textContent = {long:'偏多',short:'偏空',flat:'中性'}[d.score.direction] || '—';
+  $('vsQ').style.color = d.score.composite>=0 ? 'var(--green)' : 'var(--red)';
+  $('vsO').textContent = {long:'偏多',short:'偏空',flat:'中性'}[o.direction] || '—';
+  $('vsO').style.color = 'var(--gold)';
+}
+
 async function load() {
   try {
     const s = await (await fetch('api/state')).json();
-
     $('hstat').innerHTML =
-      `<div class="chip"><div class="dot g"></div>信号源 Hyperliquid 主网</div>
-       <div class="chip"><div class="dot ${s.config.brain==='0g'?'c':'a'}"></div>大脑 ${s.config.brain==='0g'?'0G Compute':'规则兜底'}</div>
-       <div class="chip"><div class="dot ${s.config.live?'a':'g'}"></div>${s.config.live?'实盘已武装':'未武装'}</div>`;
-
-    $('banner').innerHTML =
-      `<b>执行场所</b> ${s.venue.disclosure}<br>
-       <b>数据口径</b> 信号来自 Hyperliquid <b>主网</b>真实盘口/资金费/持仓量；下单指向 <b>testnet</b>。
-       两者刻意不同——testnet 盘口太薄，无法产生有意义的信号。
-       <div class="note">评分权重复刻自 Mentis 公开方法论（聪明钱30% / 技术25% / 资金流25% / 情绪20% / 风险罚分-20%），
-       未调用其任何私有接口。聪明钱维度当前为零权重占位——真实实现需要有标注的钱包集，那是需要授权的数据。</div>`;
-
-    $('meta').innerHTML = [
-      ['最近扫描', s.computedAt ? new Date(s.computedAt).toLocaleTimeString() : '—'],
-      ['扫描标的', s.decisions.length],
-      ['本次耗时', (s.durationMs/1000).toFixed(1)+'s'],
-      ['单笔上限', fmt(s.config.limits.maxOrderNotional)],
-      ['总敞口上限', fmt(s.config.limits.maxTotalExposure)],
-      ['熔断回撤', s.config.limits.killSwitchDrawdownPct + '%'],
-    ].map(([l,v]) => `<div class="mcard"><div class="mlabel">${l}</div><div class="mval">${v}</div></div>`).join('');
+      `<div class="chip"><div class="dot g"></div>Hyperliquid 主网</div>
+       <div class="chip"><div class="dot ${s.config.brain==='0g'?'c':'a'}"></div>${
+         s.config.brain==='0g'?'0G Compute':'规则兜底'}</div>
+       <div class="chip"><div class="dot ${s.config.live?'a':'g'}"></div>${
+         s.config.live?'实盘已武装':'未武装'}</div>`;
 
     SV.update(s.decisions, ATTESTED);
     $('hStatN').textContent = s.decisions.length;
     $('hStatConf').textContent = s.decisions.length
-      ? (s.decisions.reduce((a,d)=>a+d.score.confidence,0)/s.decisions.length*100).toFixed(1)+'%'
-      : '—';
+      ? (s.decisions.reduce((a,d)=>a+d.score.confidence,0)/s.decisions.length*100).toFixed(1)+'%' : '—';
     $('hStatAct').textContent = s.decisions.filter(d=>d.rec.action!=='hold').length;
+
+    $('meta').innerHTML = [
+      ['最近扫描', s.computedAt?new Date(s.computedAt).toLocaleTimeString():'—'],
+      ['扫描标的', s.decisions.length],
+      ['本次耗时', (s.durationMs/1000).toFixed(1)+'s'],
+      ['决策阈值', s.config.minConviction],
+      ['单笔上限', fmt(s.config.limits.maxOrderNotional)],
+      ['总敞口上限', fmt(s.config.limits.maxTotalExposure)],
+      ['熔断回撤', s.config.limits.killSwitchDrawdownPct+'%'],
+    ].map(([l,v])=>`<div class="mcard"><div class="mlabel">${l}</div><div class="mval">${v}</div></div>`).join('');
 
     $('grid').innerHTML = s.decisions.length
       ? s.decisions.map(card).join('')
-      : `<div class="empty">${s.lastError ? '扫描失败：'+s.lastError : '暂无数据，点击「立即扫描」'}</div>`;
+      : `<div class="empty">${s.lastError?'扫描失败：'+s.lastError:'暂无数据，点击「立即扫描」'}</div>`;
+    document.querySelectorAll('.radar').forEach(cv => {
+      const d = s.decisions[Number(cv.dataset.i)];
+      if (d) drawRadar(cv, d.score);
+    });
+    if (s.decisions.length) renderMyst(s.decisions[0]);
   } catch (e) {
     $('grid').innerHTML = `<div class="empty">连接引擎失败：${e.message}</div>`;
   }
 }
-
-const ATTESTED = new Set();
 
 async function loadLedger() {
   try {
@@ -492,27 +949,27 @@ async function loadLedger() {
     (l.items||[]).forEach(i => i.txHash && ATTESTED.add(i.coin));
     $('hStatAtt').textContent = l.count ?? 0;
     if (!l.items || !l.items.length) { $('ledger').innerHTML=''; return; }
-    $('ledger').innerHTML = `<div class="led">
-      <div class="led-h">链上决策存证 · Kite testnet · 共 ${l.count} 条</div>
-      ${l.items.slice(0,6).map(i => `<div class="led-r">
+    $('ledger').innerHTML = `<div class="panel led">
+      <div class="sec-h"><div class="sec-t" style="color:var(--purple)">链上决策存证 · Kite Testnet</div>
+        <div class="sec-s">共 ${l.count} 条 · 每条为一次决策的哈希,写入时结果尚未揭晓</div></div>
+      ${l.items.slice(0,8).map(i=>`<div class="led-r">
         <b style="min-width:52px">${i.coin}</b>
         <span style="color:${i.action==='open_long'?'var(--green)':'var(--red)'}">${i.action}</span>
         <span style="color:var(--dim)">comp ${Number(i.composite).toFixed(3)}</span>
-        <span style="color:var(--dim)">${new Date(i.attestedAt).toLocaleTimeString()}</span>
-        <a href="${i.explorerUrl}" target="_blank" rel="noopener">${i.txHash}</a>
-      </div>`).join('')}
+        <span style="color:var(--faint)">${new Date(i.attestedAt).toLocaleTimeString()}</span>
+        <a href="${i.explorerUrl}" target="_blank" rel="noopener">${i.txHash}</a></div>`).join('')}
     </div>`;
   } catch {}
 }
 
-async function forceTick() {
+async function forceScan() {
   const b = $('btn'); b.disabled = true; b.textContent = '扫描中…';
-  try { await fetch('api/scan', {method:'POST'}); await load(); }
+  try { await fetch('api/scan', {method:'POST'}); await load(); await loadLedger(); }
   finally { b.disabled = false; b.textContent = '立即扫描'; }
 }
 
 load(); loadLedger();
-setInterval(() => { load(); loadLedger(); }, 15000);
+setInterval(() => { load(); loadLedger(); }, 20000);
 </script>
 </body>
 </html>

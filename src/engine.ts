@@ -21,6 +21,10 @@ import { evaluateGuards, type GuardState } from "./execution/guards.js";
 import { HyperliquidTestnetVenue, priceThroughBook } from "./execution/hyperliquid.js";
 import type { Fill, OrderIntent, Venue } from "./execution/types.js";
 import { attest, type AttestationReceipt } from "./payments/kite-x402.js";
+import {
+  readOmen, recordAgreement, agreementRate,
+  type MetaphysicsReading, type AgreementStat,
+} from "./signals/metaphysics.js";
 
 export interface Decision {
   ts: number;
@@ -33,6 +37,12 @@ export interface Decision {
   fill?: Fill;
   depth1pctUsd: number;
   attestation?: AttestationReceipt;
+  /**
+   * Entertainment/comparison layer only. Computed alongside the real signal
+   * and never mixed into `score`. See signals/metaphysics.ts.
+   */
+  omen?: MetaphysicsReading;
+  omenAgreement?: AgreementStat;
 }
 
 /**
@@ -132,6 +142,12 @@ export class Engine {
       }
     }
 
+    // Comparison layer. Deliberately computed AFTER `score` and `rec` so it is
+    // structurally impossible for it to influence either. It is recorded, shown,
+    // and scored for agreement — never acted on.
+    const omen = readOmen(snap.coin, new Date(), process.env.MBTI ?? "INTJ");
+    recordAgreement(snap.coin, score.direction, omen.direction);
+
     return {
       ts: Date.now(),
       coin: snap.coin,
@@ -140,6 +156,8 @@ export class Engine {
       rec,
       brain,
       depth1pctUsd: depth,
+      omen,
+      omenAgreement: agreementRate(),
     };
   }
 
