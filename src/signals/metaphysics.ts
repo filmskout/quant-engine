@@ -302,9 +302,45 @@ export interface AgreementStat {
   samples: number;
   agreements: number;
   rate: number;
+  /**
+   * Distinct 时辰 buckets covered. Samples inside one 时辰 share the entire
+   * time component of the omen, so they are NOT independent. This is the
+   * honest denominator to reason about, and the UI shows it next to `samples`.
+   */
+  shichenCovered?: number;
+  /** Wilson 95% interval on the rate — meaningful only if samples are independent. */
+  ci95?: [number, number];
 }
 
 const tally = new Map<string, { n: number; hit: number }>();
+const shichenSeen = new Set<string>();
+
+/** Wilson score interval — better than normal approximation at small n. */
+function wilson(hit: number, n: number): [number, number] {
+  if (!n) return [0, 0];
+  const z = 1.96, p = hit / n;
+  const d = 1 + (z * z) / n;
+  const c = p + (z * z) / (2 * n);
+  const s = z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n));
+  return [Math.max(0, (c - s) / d), Math.min(1, (c + s) / d)];
+}
+
+/** Snapshot for persistence across restarts. */
+export function exportTally() {
+  return {
+    tally: Object.fromEntries(tally),
+    shichen: [...shichenSeen],
+  };
+}
+
+export function importTally(snap: unknown) {
+  const s = snap as { tally?: Record<string, { n: number; hit: number }>; shichen?: string[] };
+  if (!s?.tally) return;
+  for (const [k, v] of Object.entries(s.tally)) {
+    if (typeof v?.n === "number" && typeof v?.hit === "number") tally.set(k, { ...v });
+  }
+  (s.shichen ?? []).forEach((x) => shichenSeen.add(x));
+}
 
 /**
  * Record whether the omen direction matched the quant direction for a symbol.
@@ -312,18 +348,20 @@ const tally = new Map<string, { n: number; hit: number }>();
  * ~50% and you have demonstrated, with live data, that the omen carries no
  * information the quant signal does not already have.
  */
-export function recordAgreement(coin: string, quantDir: string, omenDir: string) {
-  const k = "ALL";
-  const cur = tally.get(k) ?? { n: 0, hit: 0 };
-  cur.n += 1;
-  if (quantDir === omenDir) cur.hit += 1;
-  tally.set(k, cur);
-
-  const ck = `C:${coin}`;
-  const c = tally.get(ck) ?? { n: 0, hit: 0 };
-  c.n += 1;
-  if (quantDir === omenDir) c.hit += 1;
-  tally.set(ck, c);
+export function recordAgreement(
+  coin: string,
+  quantDir: string,
+  omenDir: string,
+  shichen?: string,
+) {
+  const hit = quantDir === omenDir ? 1 : 0;
+  for (const k of ["ALL", `C:${coin}`]) {
+    const cur = tally.get(k) ?? { n: 0, hit: 0 };
+    cur.n += 1;
+    cur.hit += hit;
+    tally.set(k, cur);
+  }
+  if (shichen) shichenSeen.add(shichen);
 }
 
 export function agreementRate(coin?: string): AgreementStat {
@@ -333,5 +371,7 @@ export function agreementRate(coin?: string): AgreementStat {
     samples: t.n,
     agreements: t.hit,
     rate: t.n ? t.hit / t.n : 0,
+    shichenCovered: shichenSeen.size,
+    ci95: wilson(t.hit, t.n),
   };
 }

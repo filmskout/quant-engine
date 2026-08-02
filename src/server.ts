@@ -16,6 +16,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { Engine, type Decision } from "./engine.js";
 import { loadConfig } from "./config.js";
+import { startSampler, loadStore } from "./sampler.js";
+import { agreementRate, readOmen } from "./signals/metaphysics.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8770);
@@ -99,8 +101,20 @@ const server = createServer(async (req, res) => {
 
   if (url.pathname === "/api/state") {
     const snap = await getSnapshot(url.searchParams.get("fresh") === "1");
+    const want = (url.searchParams.get("mbti") ?? "").toUpperCase().slice(0, 4);
+
+    // Re-derive only the omen for the requested MBTI. Cheap (pure calendar
+    // maths) and leaves the cached quant results untouched.
+    let decisions = snap.decisions;
+    if (/^[EI][NS][TF][JP]$/.test(want)) {
+      decisions = snap.decisions.map((d) => ({
+        ...d,
+        omen: readOmen(d.coin, new Date(d.ts), want),
+      }));
+    }
+
     return json(200, {
-      decisions: snap.decisions,
+      decisions,
       computedAt: snap.computedAt,
       durationMs: snap.durationMs,
       cacheTtlMs: CACHE_TTL_MS,
@@ -119,6 +133,10 @@ const server = createServer(async (req, res) => {
 
   // Proxy the merchant's settled-attestation ledger so the dashboard can show
   // real on-chain records even on scans where nothing new was actionable.
+  if (url.pathname === "/api/agreement") {
+    return json(200, agreementRate());
+  }
+
   if (url.pathname === "/api/attestations") {
     const base = process.env.ATTEST_URL?.replace(/\/attest$/, "");
     if (!base) return json(200, { count: 0, items: [], disabled: true });
@@ -158,4 +176,6 @@ server.listen(PORT, () => {
     `  brain    : ${process.env.BRAIN === "off" || !cfg.zerog.apiKey ? "rule-based fallback" : "0G Compute"}`,
   );
   console.log(`  live     : ${cfg.live ? "ARMED" : "disarmed (paper/shadow)"}\n`);
+  loadStore();
+  startSampler();
 });

@@ -65,6 +65,7 @@ ssh "${SSH_OPTS[@]}" "$HOST" bash -s <<REMOTE
 set -euo pipefail
 cd "$REMOTE_DIR"
 tar xzf quant-engine.tar.gz && rm quant-engine.tar.gz
+mkdir -p data   # agreement.json lives here and must survive redeploys
 
 # ethers is the only runtime dep, and only the merchant/buyer need it.
 if [ ! -d node_modules/ethers ]; then
@@ -81,6 +82,9 @@ PORT=${ENGINE_PORT}
 TOP_N=${TOP_N:-5}
 CACHE_TTL_MS=${CACHE_TTL_MS:-45000}
 MIN_CONVICTION=${MIN_CONVICTION:-0.15}
+SAMPLER_INTERVAL_MS=${SAMPLER_INTERVAL_MS:-90000}
+SAMPLER_BREADTH=${SAMPLER_BREADTH:-12}
+SAMPLER_TARGET=${SAMPLER_TARGET:-600}
 ENVEOF
 chmod 600 .env
 

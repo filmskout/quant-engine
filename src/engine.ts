@@ -91,6 +91,14 @@ export class Engine {
       .slice(0, topN);
   }
 
+  /**
+   * MBTI describes the configured *operator* (risk appetite, trend preference),
+   * not the asset — so unlike the omen it has a defensible use: showing how a
+   * stated profile would reshape position sizing. It still never touches the
+   * composite.
+   */
+  mbti = process.env.MBTI ?? "INTJ";
+
   async analyse(snap: MarketSnapshot): Promise<Omit<Decision, "fill" | "guards">> {
     const [candles, depth] = await Promise.all([
       fetchCandles(snap.coin, "1h", 120),
@@ -145,8 +153,8 @@ export class Engine {
     // Comparison layer. Deliberately computed AFTER `score` and `rec` so it is
     // structurally impossible for it to influence either. It is recorded, shown,
     // and scored for agreement — never acted on.
-    const omen = readOmen(snap.coin, new Date(), process.env.MBTI ?? "INTJ");
-    recordAgreement(snap.coin, score.direction, omen.direction);
+    const omen = readOmen(snap.coin, new Date(), this.mbti);
+    recordAgreement(snap.coin, score.direction, omen.direction, omen.bazi.shichen);
 
     return {
       ts: Date.now(),

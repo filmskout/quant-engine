@@ -228,6 +228,23 @@ button:disabled{opacity:.45;cursor:wait;transform:none}
 .vs>div{flex:1;text-align:center;padding:9px 6px;border-radius:9px;background:rgba(0,0,0,.24)}
 .vs .k{font-family:var(--disp);font-size:9.5px;color:var(--faint);letter-spacing:.9px}
 .vs .v{font-family:var(--mono);font-size:14px;margin-top:4px}
+.ci{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:7px;line-height:1.7}
+.ci b{color:var(--dim);font-weight:500}
+.mbti-pick{margin-top:14px;padding-top:13px;border-top:1px solid rgba(232,194,106,.18);
+  text-align:left}
+.mbti-pick label{font-family:var(--disp);font-size:9.5px;letter-spacing:1.1px;
+  color:var(--faint);display:block;margin-bottom:6px;text-transform:uppercase}
+#mbtiSel{width:100%;padding:8px 10px;border-radius:9px;font-family:var(--mono);font-size:12px;
+  background:rgba(0,0,0,.35);color:var(--gold);border:1px solid rgba(232,194,106,.28);
+  cursor:pointer;outline:none}
+#mbtiSel:focus{border-color:var(--gold)}
+#mbtiSel option{background:#0b1120;color:var(--tx)}
+.mbti-note{font-size:11px;color:var(--dim);line-height:1.65;margin-top:8px}
+.mbti-note b{color:var(--gold)}
+.mbti-bars{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.mb-r{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--faint)}
+.mb-r .t{flex:1;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.mb-r .f{height:100%;border-radius:3px;transition:.5s}
 
 /* ── ledger ── */
 .led{padding:15px 17px;margin-bottom:14px}
@@ -406,9 +423,15 @@ footer b{color:var(--amber)}
         <div class="g-num" id="agNum">—</div>
         <div class="g-lb">玄学与量化<b>方向一致率</b><br>
           <span id="agSub" style="font-family:var(--mono);font-size:11px">样本累积中…</span></div>
+        <div class="ci" id="agCi"></div>
         <div class="vs">
           <div><div class="k">量化方向</div><div class="v" id="vsQ">—</div></div>
           <div><div class="k">玄学方向</div><div class="v" id="vsO">—</div></div>
+        </div>
+        <div class="mbti-pick">
+          <label for="mbtiSel">你的 MBTI</label>
+          <select id="mbtiSel" onchange="onMbti()"></select>
+          <div class="mbti-note" id="mbtiNote"></div>
         </div>
       </div>
     </div>
@@ -892,21 +915,65 @@ function renderMyst(d) {
       {long:'偏多',short:'偏空',flat:'中性'}[o.direction]}</s></div>`;
   $('narr').textContent = o.narrative;
 
-  const ag = d.omenAgreement || { rate:0, samples:0 };
-  drawGauge(ag.rate, ag.samples);
-  $('agNum').textContent = ag.samples ? (ag.rate*100).toFixed(0)+'%' : '—';
-  $('agSub').textContent = ag.samples
-    ? `${ag.agreements}/${ag.samples} 次方向一致`
-    : '样本累积中…';
+  const m = o.mbti;
+  $('mbtiNote').innerHTML =
+    `<b>${m.type}</b> · ${m.label}<br>这一项描述的是<b>操作者画像</b>，不是对行情的预测——` +
+    `它只影响「如果按这个风险偏好，仓位会怎么变」。
+     <div class="mbti-bars">
+       <div class="mb-r"><span style="width:52px">风险偏好</span>
+         <div class="t"><div class="f" style="width:${(m.riskAppetite*100).toFixed(0)}%;background:var(--gold)"></div></div>
+         <span style="width:30px;text-align:right">${(m.riskAppetite*100).toFixed(0)}%</span></div>
+       <div class="mb-r"><span style="width:52px">趋势偏好</span>
+         <div class="t"><div class="f" style="width:${(Math.abs(m.trendBias)*100).toFixed(0)}%;background:${m.trendBias>=0?'var(--jade)':'var(--red)'}"></div></div>
+         <span style="width:30px;text-align:right">${m.trendBias>=0?'+':''}${m.trendBias.toFixed(2)}</span></div>
+     </div>`;
+
   $('vsQ').textContent = {long:'偏多',short:'偏空',flat:'中性'}[d.score.direction] || '—';
   $('vsQ').style.color = d.score.composite>=0 ? 'var(--green)' : 'var(--red)';
   $('vsO').textContent = {long:'偏多',short:'偏空',flat:'中性'}[o.direction] || '—';
   $('vsO').style.color = 'var(--gold)';
 }
 
+// ── MBTI picker ──
+const MBTI_ALL = [
+  'INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP',
+  'ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP',
+];
+let MBTI = localStorage.getItem('qe.mbti') || 'INTJ';
+(function initMbti(){
+  const sel = $('mbtiSel');
+  sel.innerHTML = MBTI_ALL.map(t=>`<option value="${t}"${t===MBTI?' selected':''}>${t}</option>`).join('');
+})();
+function onMbti(){
+  MBTI = $('mbtiSel').value;
+  localStorage.setItem('qe.mbti', MBTI);
+  load();   // cheap: only the omen is re-derived server-side
+}
+
+/**
+ * Accumulated agreement stat. Pulled separately from /api/agreement so it keeps
+ * climbing from the background sampler even when the cached scan is unchanged.
+ */
+async function loadAgreement() {
+  try {
+    const ag = await (await fetch('api/agreement')).json();
+    drawGauge(ag.rate, ag.samples);
+    $('agNum').textContent = ag.samples ? (ag.rate*100).toFixed(1)+'%' : '—';
+    $('agSub').textContent = ag.samples
+      ? `${ag.agreements}/${ag.samples} 次方向一致`
+      : '样本累积中…';
+    const ci = ag.ci95 || [0,0];
+    $('agCi').innerHTML = ag.samples
+      ? `95% 置信区间 <b>${(ci[0]*100).toFixed(1)}–${(ci[1]*100).toFixed(1)}%</b><br>
+         覆盖 <b>${ag.shichenCovered||0}</b> 个时辰 ·
+         <span title="同一时辰内的样本共享时间项,并非完全独立;区间宽度是乐观估计">独立性有限 ⓘ</span>`
+      : '';
+  } catch {}
+}
+
 async function load() {
   try {
-    const s = await (await fetch('api/state')).json();
+    const s = await (await fetch('api/state?mbti=' + encodeURIComponent(MBTI))).json();
     $('hstat').innerHTML =
       `<div class="chip"><div class="dot g"></div>Hyperliquid 主网</div>
        <div class="chip"><div class="dot ${s.config.brain==='0g'?'c':'a'}"></div>${
@@ -968,8 +1035,10 @@ async function forceScan() {
   finally { b.disabled = false; b.textContent = '立即扫描'; }
 }
 
-load(); loadLedger();
+load(); loadLedger(); loadAgreement();
 setInterval(() => { load(); loadLedger(); }, 20000);
+// the sampler ticks faster than a scan, so poll the stat on its own cadence
+setInterval(loadAgreement, 8000);
 </script>
 </body>
 </html>

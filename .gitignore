@@ -18,3 +18,4 @@ attestation/attestations.jsonl
 *.png
 *.mp4
 !docs/**/*.png
+data/
