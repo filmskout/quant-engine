@@ -18,8 +18,26 @@ REMOTE_DIR="${REMOTE_DIR:-/home/ubuntu/quant-engine}"
 ENGINE_PORT="${ENGINE_PORT:-8770}"
 ATTEST_PORT="${ATTEST_PORT:-8771}"
 
-SSH="ssh -i $SSH_KEY -o StrictHostKeyChecking=no $HOST"
+# Multiplex over a single connection. Opening a fresh one per step tripped the
+# server's sshd throttling ("Connection closed by ... port 22" on roughly two
+# of three attempts), which made deploys fail intermittently mid-upload.
+CTL="/tmp/qe-ssh-%r@%h:%p"
+SSH_OPTS=(-i "$SSH_KEY" -o StrictHostKeyChecking=no
+          -o ControlMaster=auto -o ControlPath="$CTL" -o ControlPersist=120
+          -o ConnectTimeout=20 -o ServerAliveInterval=15)
+SSH="ssh ${SSH_OPTS[*]} $HOST"
 here="$(cd "$(dirname "$0")/.." && pwd)"
+
+cleanup() { ssh "${SSH_OPTS[@]}" -O exit "$HOST" 2>/dev/null || true; }
+trap cleanup EXIT
+
+# Establish the master connection once, retrying past the throttle.
+for attempt in 1 2 3 4 5; do
+  if ssh "${SSH_OPTS[@]}" "$HOST" true 2>/dev/null; then break; fi
+  echo "   ssh attempt $attempt throttled, retrying…"
+  sleep $((attempt * 5))
+  [ "$attempt" = 5 ] && { echo "!! cannot establish ssh"; exit 1; }
+done
 
 for v in ZG_API_KEY KITE_BUYER_KEY; do
   if [ -z "${!v:-}" ]; then
@@ -40,11 +58,10 @@ tar czf /tmp/quant-engine.tar.gz \
 
 echo "==> uploading"
 $SSH "mkdir -p $REMOTE_DIR"
-scp -i "$SSH_KEY" -o StrictHostKeyChecking=no \
-  /tmp/quant-engine.tar.gz "$HOST:$REMOTE_DIR/"
+scp "${SSH_OPTS[@]}" /tmp/quant-engine.tar.gz "$HOST:$REMOTE_DIR/"
 
 echo "==> installing"
-$SSH bash -s <<REMOTE
+ssh "${SSH_OPTS[@]}" "$HOST" bash -s <<REMOTE
 set -euo pipefail
 cd "$REMOTE_DIR"
 tar xzf quant-engine.tar.gz && rm quant-engine.tar.gz

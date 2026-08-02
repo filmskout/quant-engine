@@ -106,6 +106,26 @@ button:disabled{opacity:.5;cursor:wait;transform:none}
 .led-r a:hover{text-decoration:underline}
 .empty{padding:60px 20px;text-align:center;color:var(--faint);font-size:14px}
 .note{font-size:11px;color:var(--faint);margin-top:6px;line-height:1.5}
+
+/* ── hero: market-state sphere, driven by live composite scores ── */
+.hero{position:relative;height:420px;margin-bottom:14px;border-radius:16px;overflow:hidden;
+  background:var(--panel);border:1px solid var(--border);backdrop-filter:blur(14px)}
+.hero::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;z-index:2;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--purple),transparent);opacity:.6}
+#sphere{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero-hud{position:absolute;top:14px;left:16px;right:16px;display:flex;
+  justify-content:space-between;pointer-events:none;z-index:2;flex-wrap:wrap;gap:8px}
+.hero-t{font-family:Orbitron;font-size:11px;letter-spacing:2px;color:var(--purple);
+  text-transform:uppercase}
+.hero-t span{color:var(--dim);letter-spacing:.6px;text-transform:none;font-size:10.5px}
+.hero-legend{display:flex;gap:12px;font-size:10px;font-family:Orbitron;color:var(--dim)}
+.hero-legend i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+.hero-foot{position:absolute;bottom:12px;left:16px;right:16px;z-index:2;
+  display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;gap:10px}
+.hero-stat{font-family:Orbitron;font-size:10.5px;color:var(--dim);
+  background:rgba(5,7,13,.62);border:1px solid var(--border);border-radius:8px;padding:5px 11px;
+  backdrop-filter:blur(8px)}
+.hero-stat b{color:var(--cyan);font-weight:500}
 </style>
 </head>
 <body>
@@ -117,6 +137,25 @@ button:disabled{opacity:.5;cursor:wait;transform:none}
     <button id="btn" onclick="forceTick()">立即扫描</button>
   </header>
 
+  <div class="hero">
+    <canvas id="sphere"></canvas>
+    <div class="hero-hud">
+      <div class="hero-t">市场态可视化 · Market State
+        <span>&nbsp;&nbsp;每个轨道节点 = 一个真实标的,半径与颜色由实时综合评分决定</span></div>
+      <div class="hero-legend">
+        <span><i style="background:#00ff88;box-shadow:0 0 7px #00ff88"></i>看多倾向</span>
+        <span><i style="background:#ff3366;box-shadow:0 0 7px #ff3366"></i>看空倾向</span>
+        <span><i style="background:#a855f7;box-shadow:0 0 7px #a855f7"></i>已上链存证</span>
+      </div>
+    </div>
+    <div class="hero-foot">
+      <div class="hero-stat">扫描标的 <b id="hStatN">—</b></div>
+      <div class="hero-stat">平均置信 <b id="hStatConf">—</b></div>
+      <div class="hero-stat">可执行信号 <b id="hStatAct">—</b></div>
+      <div class="hero-stat">存证 <b id="hStatAtt">—</b></div>
+    </div>
+  </div>
+
   <div class="banner" id="banner">加载中…</div>
 
   <div class="meta" id="meta"></div>
@@ -125,6 +164,212 @@ button:disabled{opacity:.5;cursor:wait;transform:none}
 </div>
 
 <script>
+// ═══════════════════════════════════════════════════════════════
+//  Market-state sphere.
+//  Ported from the standalone quantum visualisation, but every
+//  parameter here is bound to live data instead of Math.random():
+//    - orbit radius   <- |composite|
+//    - node colour    <- sign(composite)
+//    - node size      <- log(depth within 1%)
+//    - core intensity <- share of actionable signals
+//    - shell density  <- mean confidence
+//  A quiet market therefore *looks* quiet, which is the point.
+// ═══════════════════════════════════════════════════════════════
+const SV = (() => {
+  const cv = document.getElementById('sphere');
+  const cx2 = cv.getContext('2d');
+  let W = 0, H = 0, T = 0, mx = .5, my = .5;
+  let coins = [];              // [{coin, composite, confidence, depth, action, attested}]
+  let coreIntensity = 0, meanConf = 0;
+
+  function resize() {
+    const r = cv.parentElement.getBoundingClientRect();
+    W = r.width; H = r.height;
+    cv.width = W * devicePixelRatio; cv.height = H * devicePixelRatio;
+    cx2.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  }
+  resize();
+  addEventListener('resize', resize);
+  cv.addEventListener('mousemove', e => {
+    const r = cv.getBoundingClientRect();
+    mx = (e.clientX - r.left) / r.width; my = (e.clientY - r.top) / r.height;
+  });
+
+  // fibonacci shell
+  const N = 900, pts = [];
+  for (let i = 0; i < N; i++) {
+    const t = i / N, inc = Math.acos(1 - 2 * t), azi = Math.PI * (1 + Math.sqrt(5)) * i;
+    pts.push({ x: Math.sin(inc) * Math.cos(azi), y: Math.sin(inc) * Math.sin(azi),
+               z: Math.cos(inc), ph: (i * 2.399) % 6.283 });
+  }
+
+  const proj = (p, ox, oy, R, ry, rx) => {
+    const cy = Math.cos(ry), sy = Math.sin(ry);
+    let x = p.x * cy - p.z * sy, z = p.x * sy + p.z * cy;
+    const cxx = Math.cos(rx), sxx = Math.sin(rx);
+    const y = p.y * cxx - z * sxx; z = p.y * sxx + z * cxx;
+    const k = 1 / (1 + z * .34);
+    return { sx: ox + x * R * k, sy: oy + y * R * k, z, k };
+  };
+
+  function frame() {
+    T += .006;
+    cx2.clearRect(0, 0, W, H);
+    if (!W) return requestAnimationFrame(frame);
+
+    const ox = W / 2, oy = H / 2 - 6;
+    // .30 made the widest orbit reach y≈4px at some phases, colliding with the
+    // HUD text. At .24 the outermost node tops out around y≈46px — clear of the
+    // header, while the innermost still sits outside the shell vertically.
+    const R = Math.min(W, H) * .24;
+    const ry = T * .3 + (mx - .5) * 1.5;
+    const rx = Math.sin(T * .2) * .25 + (my - .5) * .8;
+
+    // halo brightens with actionable share
+    const halo = cx2.createRadialGradient(ox, oy, R * .2, ox, oy, R * 2);
+    halo.addColorStop(0, `rgba(0,229,255,${.05 + coreIntensity * .16})`);
+    halo.addColorStop(.5, `rgba(168,85,247,${.04 + coreIntensity * .10})`);
+    halo.addColorStop(1, 'transparent');
+    cx2.fillStyle = halo; cx2.fillRect(0, 0, W, H);
+
+    // probability shells — count scales with mean confidence
+    const shells = 2 + Math.round(meanConf * 3);
+    for (let k = 0; k < shells; k++) {
+      cx2.beginPath();
+      for (let a = 0; a <= 60; a++) {
+        const th = a / 60 * 6.283;
+        const q = proj({ x: Math.cos(th), y: 0, z: Math.sin(th) }, ox, oy,
+                       R * (1.05 + k * .15), ry, rx + k * .42);
+        a ? cx2.lineTo(q.sx, q.sy) : cx2.moveTo(q.sx, q.sy);
+      }
+      cx2.closePath();
+      cx2.strokeStyle = `hsla(${190 + k * 40},100%,70%,${.52 - k * .08})`;
+      cx2.lineWidth = 1.5; cx2.shadowBlur = 13;
+      cx2.shadowColor = `hsla(${190 + k * 40},100%,60%,.7)`;
+      cx2.stroke(); cx2.shadowBlur = 0;
+    }
+
+    // shell cloud — hue follows aggregate market lean
+    const lean = coins.length
+      ? coins.reduce((s, c) => s + c.composite, 0) / coins.length : 0;
+    const baseHue = lean >= 0 ? 158 : 344;
+    cx2.globalCompositeOperation = 'lighter';
+    for (const p of pts) {
+      const br = 1 + .04 * Math.sin(T * 1.5 + p.ph);
+      const q = proj(p, ox, oy, R * br, ry, rx);
+      const depth = (1 - q.z) * .5;
+      const sh = .55 + .45 * Math.sin(T * 2.1 + p.ph);
+      const a = (.20 + depth * .62) * sh;
+      const hue = baseHue + (p.ph % 1) * 44 - 10;
+      const g = cx2.createRadialGradient(q.sx, q.sy, 0, q.sx, q.sy, 5.5);
+      g.addColorStop(0, `hsla(${hue},98%,72%,${a * .62})`);
+      g.addColorStop(1, 'transparent');
+      cx2.fillStyle = g;
+      cx2.beginPath(); cx2.arc(q.sx, q.sy, 5.5, 0, 6.283); cx2.fill();
+      cx2.fillStyle = `hsla(${hue},98%,88%,${a})`;
+      cx2.beginPath(); cx2.arc(q.sx, q.sy, .95 + q.k * 1.1, 0, 6.283); cx2.fill();
+    }
+    cx2.globalCompositeOperation = 'source-over';
+
+    // spacetime curvature funnel through the poles
+    for (let sgn = -1; sgn <= 1; sgn += 2) {
+      cx2.beginPath();
+      for (let a = 0; a <= 44; a++) {
+        const th = a / 44 * 6.283;
+        const q = proj({ x: Math.cos(th) * .24, y: sgn * 1.28, z: Math.sin(th) * .24 },
+                       ox, oy, R, ry, rx);
+        a ? cx2.lineTo(q.sx, q.sy) : cx2.moveTo(q.sx, q.sy);
+      }
+      cx2.closePath();
+      cx2.strokeStyle = `rgba(0,229,255,${.30 + coreIntensity * .40})`;
+      cx2.lineWidth = 1.3; cx2.shadowBlur = 13; cx2.shadowColor = 'rgba(0,229,255,.85)';
+      cx2.stroke(); cx2.shadowBlur = 0;
+      for (let a = 0; a < 14; a++) {
+        const th = a / 14 * 6.283;
+        const t1 = proj({ x: Math.cos(th) * .24, y: sgn * 1.28, z: Math.sin(th) * .24 },
+                        ox, oy, R, ry, rx);
+        const t0 = proj({ x: Math.cos(th) * .02, y: 0, z: Math.sin(th) * .02 },
+                        ox, oy, R, ry, rx);
+        cx2.strokeStyle = `rgba(168,85,247,${.16 + coreIntensity * .26})`;
+        cx2.lineWidth = 1;
+        cx2.beginPath(); cx2.moveTo(t1.sx, t1.sy); cx2.lineTo(t0.sx, t0.sy); cx2.stroke();
+      }
+    }
+
+    // core
+    const core = cx2.createRadialGradient(ox, oy, 0, ox, oy, R * .4);
+    core.addColorStop(0, `rgba(255,255,255,${.35 + coreIntensity * .5})`);
+    core.addColorStop(.18, `rgba(0,229,255,${.20 + coreIntensity * .3})`);
+    core.addColorStop(.55, 'rgba(168,85,247,.10)');
+    core.addColorStop(1, 'transparent');
+    cx2.fillStyle = core;
+    cx2.beginPath(); cx2.arc(ox, oy, R * .4, 0, 6.283); cx2.fill();
+
+    // ── real coins as orbiting nodes ──────────────────────────
+    coins.forEach((c, i) => {
+      const mag = Math.min(1, Math.abs(c.composite) / .4);
+      // Distinct radius band per node. Magnitude alone is not enough: in a quiet
+      // market every score is nearly identical, so nodes stacked at one radius
+      // and their labels overlapped. Band separates them, magnitude modulates
+      // within the band (stronger signal sits nearer the core).
+      const band = 1.54 + (i / Math.max(1, coins.length - 1)) * 0.60;
+      const orbR = R * (band - mag * .20);
+      const ang = T * (.30 + i * .045) + i * (6.283 / Math.max(1, coins.length));
+      const nx = ox + Math.cos(ang) * orbR;
+      // Y was flattened to .40, which put nodes *inside* the shell vertically
+      // (0.40 * orbR < R) near the poles. A rounder orbit clears the cloud at
+      // every phase.
+      const ny = oy + Math.sin(ang) * orbR * .74 + Math.sin(T * .7 + i) * 5;
+      const front = .5 + .5 * Math.sin(ang);
+      const hue = c.composite >= 0 ? 158 : 344;
+      const sz = 3 + Math.min(3.2, Math.log10(Math.max(10, c.depth)) - 3.6);
+
+      // attested nodes get a violet halo ring
+      if (c.attested) {
+        cx2.strokeStyle = `hsla(272,90%,72%,${.30 + front * .45})`;
+        cx2.lineWidth = 1.3;
+        cx2.beginPath(); cx2.arc(nx, ny, sz + 6, 0, 6.283); cx2.stroke();
+      }
+      const g = cx2.createRadialGradient(nx, ny, 0, nx, ny, 19);
+      g.addColorStop(0, `hsla(${hue},100%,66%,${.20 + front * .34})`);
+      g.addColorStop(1, 'transparent');
+      cx2.fillStyle = g;
+      cx2.beginPath(); cx2.arc(nx, ny, 19, 0, 6.283); cx2.fill();
+
+      cx2.fillStyle = `hsla(${hue},100%,${72 + front * 16}%,${.55 + front * .45})`;
+      cx2.beginPath(); cx2.arc(nx, ny, sz, 0, 6.283); cx2.fill();
+
+      cx2.font = `${9.5 + front * 2.5}px Orbitron, monospace`;
+      cx2.textAlign = 'center'; cx2.textBaseline = 'middle';
+      cx2.fillStyle = `rgba(230,236,255,${.42 + front * .52})`;
+      cx2.fillText(c.coin, nx, ny - sz - 9);
+      cx2.font = '9px JetBrains Mono, monospace';
+      cx2.fillStyle = `hsla(${hue},90%,74%,${.34 + front * .46})`;
+      cx2.fillText((c.composite >= 0 ? '+' : '') + c.composite.toFixed(3), nx, ny + sz + 10);
+    });
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  return {
+    update(decisions, attestedSet) {
+      coins = decisions.map(d => ({
+        coin: d.coin,
+        composite: d.score.composite,
+        confidence: d.score.confidence,
+        depth: d.depth1pctUsd || 0,
+        action: d.rec.action,
+        attested: Boolean(d.attestation?.paid) || attestedSet.has(d.coin),
+      }));
+      const act = coins.filter(c => c.action !== 'hold').length;
+      coreIntensity = coins.length ? act / coins.length : 0;
+      meanConf = coins.length
+        ? coins.reduce((s, c) => s + c.confidence, 0) / coins.length : 0;
+    },
+  };
+})();
+
 const $ = id => document.getElementById(id);
 const fmt = n => n >= 1e9 ? '$'+(n/1e9).toFixed(2)+'B'
               : n >= 1e6 ? '$'+(n/1e6).toFixed(2)+'M'
@@ -224,6 +469,13 @@ async function load() {
       ['熔断回撤', s.config.limits.killSwitchDrawdownPct + '%'],
     ].map(([l,v]) => `<div class="mcard"><div class="mlabel">${l}</div><div class="mval">${v}</div></div>`).join('');
 
+    SV.update(s.decisions, ATTESTED);
+    $('hStatN').textContent = s.decisions.length;
+    $('hStatConf').textContent = s.decisions.length
+      ? (s.decisions.reduce((a,d)=>a+d.score.confidence,0)/s.decisions.length*100).toFixed(1)+'%'
+      : '—';
+    $('hStatAct').textContent = s.decisions.filter(d=>d.rec.action!=='hold').length;
+
     $('grid').innerHTML = s.decisions.length
       ? s.decisions.map(card).join('')
       : `<div class="empty">${s.lastError ? '扫描失败：'+s.lastError : '暂无数据，点击「立即扫描」'}</div>`;
@@ -232,9 +484,13 @@ async function load() {
   }
 }
 
+const ATTESTED = new Set();
+
 async function loadLedger() {
   try {
     const l = await (await fetch('api/attestations')).json();
+    (l.items||[]).forEach(i => i.txHash && ATTESTED.add(i.coin));
+    $('hStatAtt').textContent = l.count ?? 0;
     if (!l.items || !l.items.length) { $('ledger').innerHTML=''; return; }
     $('ledger').innerHTML = `<div class="led">
       <div class="led-h">链上决策存证 · Kite testnet · 共 ${l.count} 条</div>
