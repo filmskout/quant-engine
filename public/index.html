@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quant Engine — 真实信号 · 可验证决策</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Rajdhani:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#05070d; --panel:rgba(12,18,34,.72); --border:rgba(100,150,255,.16);
+  --cyan:#00e5ff; --purple:#a855f7; --green:#00ff88; --red:#ff3366; --amber:#ffb020;
+  --tx:#e6ecff; --dim:rgba(180,195,235,.55); --faint:rgba(150,165,205,.35);
+}
+body{background:var(--bg);color:var(--tx);font-family:Rajdhani,system-ui,sans-serif;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;z-index:0;background:
+  radial-gradient(ellipse 90% 60% at 25% 8%,rgba(0,229,255,.07),transparent 60%),
+  radial-gradient(ellipse 80% 60% at 78% 92%,rgba(168,85,247,.07),transparent 60%)}
+.wrap{position:relative;z-index:1;max-width:1500px;margin:0 auto;padding:20px}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:14px 20px;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;backdrop-filter:blur(16px);margin-bottom:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;font-family:Orbitron;font-weight:700;
+  font-size:16px;letter-spacing:1.5px}
+.mark{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:19px;
+  background:linear-gradient(135deg,var(--cyan),var(--purple));box-shadow:0 0 22px rgba(0,229,255,.35)}
+.brand span{color:var(--cyan)}
+.hstat{display:flex;gap:10px;flex-wrap:wrap}
+.chip{padding:6px 13px;border:1px solid var(--border);border-radius:18px;font-size:11px;
+  font-family:Orbitron;letter-spacing:.5px;display:flex;align-items:center;gap:7px;background:rgba(20,30,60,.35)}
+.dot{width:7px;height:7px;border-radius:50%;animation:p 2s ease-in-out infinite}
+.dot.g{background:var(--green);box-shadow:0 0 8px var(--green)}
+.dot.c{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.dot.a{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.35}}
+button{font-family:Orbitron;font-size:11px;letter-spacing:1px;padding:9px 18px;border:none;
+  border-radius:9px;cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--cyan),var(--purple));
+  box-shadow:0 0 18px rgba(0,229,255,.28);transition:.25s}
+button:hover{transform:translateY(-1px)}
+button:disabled{opacity:.5;cursor:wait;transform:none}
+
+.banner{padding:12px 18px;border-radius:12px;margin-bottom:14px;font-size:13.5px;line-height:1.55;
+  border:1px solid rgba(255,176,32,.32);background:rgba(255,176,32,.07)}
+.banner b{color:var(--amber)}
+
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px}
+.mcard{padding:12px 14px;background:var(--panel);border:1px solid var(--border);border-radius:11px}
+.mlabel{font-size:9.5px;letter-spacing:1.2px;color:var(--faint);text-transform:uppercase;font-family:Orbitron}
+.mval{font-size:15px;font-weight:600;margin-top:5px;font-family:Orbitron;color:var(--cyan);word-break:break-all}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(430px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;
+  backdrop-filter:blur(14px);position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--purple),transparent);opacity:.55}
+.chead{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
+.coin{font-family:Orbitron;font-size:19px;font-weight:700}
+.px{font-family:Orbitron;font-size:14px;color:var(--dim)}
+.act{padding:4px 11px;border-radius:9px;font-family:Orbitron;font-size:10px;letter-spacing:1px}
+.a-long{background:rgba(0,255,136,.14);color:var(--green);border:1px solid rgba(0,255,136,.35)}
+.a-short{background:rgba(255,51,102,.14);color:var(--red);border:1px solid rgba(255,51,102,.35)}
+.a-hold{background:rgba(150,165,205,.12);color:var(--dim);border:1px solid rgba(150,165,205,.25)}
+
+.bars{display:flex;flex-direction:column;gap:7px;margin:12px 0}
+.row{display:flex;align-items:center;gap:9px;font-size:12px}
+.rl{width:92px;color:var(--dim);font-size:11px}
+.track{flex:1;height:7px;background:rgba(255,255,255,.055);border-radius:4px;position:relative;overflow:hidden}
+.mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,.16)}
+.fill{position:absolute;top:0;bottom:0;border-radius:4px;transition:.6s cubic-bezier(.4,0,.2,1)}
+.rv{width:52px;text-align:right;font-family:Orbitron;font-size:11px}
+
+.comp{display:flex;align-items:center;gap:11px;padding:11px;border-radius:11px;
+  background:rgba(255,255,255,.03);margin:11px 0}
+.cnum{font-family:Orbitron;font-size:26px;font-weight:700}
+.cmeta{flex:1;font-size:11.5px;color:var(--dim);line-height:1.45}
+
+.reason{font-size:13px;line-height:1.6;color:var(--tx);padding:11px;border-radius:10px;
+  background:rgba(0,229,255,.05);border-left:2px solid var(--cyan);margin-bottom:9px}
+.inval{font-size:12px;color:var(--dim);padding:9px 11px;border-radius:9px;
+  background:rgba(255,51,102,.05);border-left:2px solid rgba(255,51,102,.45)}
+.inval b{color:var(--red);font-size:10px;font-family:Orbitron;letter-spacing:.8px}
+
+.foot{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;padding-top:11px;
+  border-top:1px solid rgba(255,255,255,.06)}
+.tag{font-size:10px;font-family:Orbitron;padding:4px 9px;border-radius:7px;
+  background:rgba(255,255,255,.04);color:var(--dim);letter-spacing:.4px}
+.tag.ok{color:var(--green);background:rgba(0,255,136,.08)}
+.tag.warn{color:var(--amber);background:rgba(255,176,32,.08)}
+.tag.proof{color:var(--purple);background:rgba(168,85,247,.1);cursor:help}
+.attest{display:block;margin-top:9px;padding:10px 12px;border-radius:10px;text-decoration:none;
+  background:linear-gradient(135deg,rgba(168,85,247,.11),rgba(0,229,255,.07));
+  border:1px solid rgba(168,85,247,.32);transition:.25s}
+.attest:hover{border-color:rgba(168,85,247,.6);box-shadow:0 0 18px rgba(168,85,247,.18)}
+.attest.fail{background:rgba(255,51,102,.06);border-color:rgba(255,51,102,.3);cursor:default}
+.at-l{font-family:Orbitron;font-size:9.5px;letter-spacing:1.2px;color:var(--purple);text-transform:uppercase}
+.at-h{font-family:Orbitron;font-size:10.5px;color:var(--cyan);word-break:break-all;margin:4px 0 3px}
+.at-m{font-size:10.5px;color:var(--dim)}
+.led{background:var(--panel);border:1px solid rgba(168,85,247,.25);border-radius:13px;
+  padding:14px 16px;margin-bottom:14px}
+.led-h{font-family:Orbitron;font-size:11px;letter-spacing:1.6px;color:var(--purple);
+  text-transform:uppercase;margin-bottom:10px}
+.led-r{display:flex;align-items:center;gap:11px;padding:7px 10px;border-radius:8px;
+  background:rgba(255,255,255,.025);margin-bottom:5px;font-size:11.5px;flex-wrap:wrap}
+.led-r a{color:var(--cyan);font-family:Orbitron;font-size:10px;text-decoration:none;word-break:break-all}
+.led-r a:hover{text-decoration:underline}
+.empty{padding:60px 20px;text-align:center;color:var(--faint);font-size:14px}
+.note{font-size:11px;color:var(--faint);margin-top:6px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand"><div class="mark">Ψ</div><div>QUANT <span>ENGINE</span></div></div>
+    <div class="hstat" id="hstat"></div>
+    <button id="btn" onclick="forceTick()">立即扫描</button>
+  </header>
+
+  <div class="banner" id="banner">加载中…</div>
+
+  <div class="meta" id="meta"></div>
+  <div id="ledger"></div>
+  <div class="grid" id="grid"><div class="empty">正在拉取真实市场数据…</div></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = n => n >= 1e9 ? '$'+(n/1e9).toFixed(2)+'B'
+              : n >= 1e6 ? '$'+(n/1e6).toFixed(2)+'M'
+              : n >= 1e3 ? '$'+(n/1e3).toFixed(1)+'K' : '$'+Number(n).toFixed(2);
+
+function bar(label, v, span) {
+  // v in -1..1 (or 0..1 for risk). span=true renders a centered signed bar.
+  const pct = Math.min(100, Math.abs(v) * 100);
+  const col = span ? (v >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--amber)';
+  const style = span
+    ? (v >= 0 ? `left:50%;width:${pct/2}%` : `right:50%;width:${pct/2}%`)
+    : `left:0;width:${pct}%`;
+  return `<div class="row">
+    <span class="rl">${label}</span>
+    <div class="track">${span?'<div class="mid"></div>':''}<div class="fill" style="${style};background:${col}"></div></div>
+    <span class="rv" style="color:${col}">${v>=0&&span?'+':''}${v.toFixed(3)}</span>
+  </div>`;
+}
+
+function card(d) {
+  const a = d.rec.action;
+  const cls = a==='open_long'?'a-long':a==='open_short'?'a-short':'a-hold';
+  const label = {open_long:'做多',open_short:'做空',close:'平仓',hold:'观望'}[a] || a;
+  const cc = d.score.composite >= 0 ? 'var(--green)' : 'var(--red)';
+
+  const tags = [];
+  tags.push(`<span class="tag">深度1% ${fmt(d.depth1pctUsd)}</span>`);
+  tags.push(`<span class="tag ${d.brain.source==='0g'?'ok':'warn'}">大脑 ${d.brain.source==='0g'?('0G '+(d.brain.model||'')):'规则兜底'}</span>`);
+  if (d.brain.proofRef)
+    tags.push(`<span class="tag proof" title="0G TEE 推理凭证。目前 0G 尚无独立校验端点，此为可追溯引用，非已验证证明。">proofRef ${String(d.brain.proofRef).slice(0,14)}…</span>`);
+  if (d.guards) {
+    tags.push(`<span class="tag ${d.guards.allowed?'ok':''}">风控 ${d.guards.allowed?'放行 '+fmt(d.guards.notionalUsd):'拦截'}</span>`);
+    (d.guards.reasons||[]).slice(0,2).forEach(r => tags.push(`<span class="tag warn">${r}</span>`));
+  }
+  if (d.fill) {
+    tags.push(d.fill.ok
+      ? `<span class="tag ${d.fill.simulated?'warn':'ok'}">${d.fill.simulated?'影子成交':'真实成交'} ${d.fill.filledSz.toFixed(4)} @ ${d.fill.avgPx.toFixed(2)}</span>`
+      : `<span class="tag warn">未成交: ${(d.fill.error||'').slice(0,60)}</span>`);
+  }
+
+  const at = d.attestation;
+  const atBlock = at && at.paid
+    ? `<a class="attest" href="${at.explorerUrl}" target="_blank" rel="noopener">
+         <div class="at-l">链上存证 · Kite testnet</div>
+         <div class="at-h">${at.txHash}</div>
+         <div class="at-m">决策哈希 ${String(at.decisionHash||'').slice(0,22)}… · 已付 ${(Number(at.amountWei)/1e18).toFixed(2)} PIEUSD · 点击在浏览器查看</div>
+       </a>`
+    : at
+      ? `<div class="attest fail"><div class="at-l">链上存证失败</div><div class="at-m">${at.error||'未知错误'}</div></div>`
+      : '';
+
+  return `<div class="card">
+    <div class="chead">
+      <div><span class="coin">${d.coin}</span> <span class="px">$${d.markPx.toLocaleString()}</span></div>
+      <span class="act ${cls}">${label}${d.rec.sizePct>0?' '+d.rec.sizePct.toFixed(0)+'%':''}</span>
+    </div>
+    <div class="bars">
+      ${bar('聪明钱', d.score.smartMoney, true)}
+      ${bar('技术面', d.score.technical, true)}
+      ${bar('资金流', d.score.flow, true)}
+      ${bar('风险罚分', d.score.riskPenalty, false)}
+    </div>
+    <div class="comp">
+      <div class="cnum" style="color:${cc}">${d.score.composite>=0?'+':''}${d.score.composite.toFixed(3)}</div>
+      <div class="cmeta">综合评分 · 置信 ${(d.score.confidence*100).toFixed(1)}%<br>
+        ${(d.score.notes||[]).join(' · ')||'无附加提示'}</div>
+    </div>
+    <div class="reason">${d.rec.reasoning}</div>
+    ${d.rec.invalidation?`<div class="inval"><b>失效条件</b> ${d.rec.invalidation}</div>`:''}
+    ${atBlock}
+    <div class="foot">${tags.join('')}</div>
+  </div>`;
+}
+
+async function load() {
+  try {
+    const s = await (await fetch('/api/state')).json();
+
+    $('hstat').innerHTML =
+      `<div class="chip"><div class="dot g"></div>信号源 Hyperliquid 主网</div>
+       <div class="chip"><div class="dot ${s.config.brain==='0g'?'c':'a'}"></div>大脑 ${s.config.brain==='0g'?'0G Compute':'规则兜底'}</div>
+       <div class="chip"><div class="dot ${s.config.live?'a':'g'}"></div>${s.config.live?'实盘已武装':'未武装'}</div>`;
+
+    $('banner').innerHTML =
+      `<b>执行场所</b> ${s.venue.disclosure}<br>
+       <b>数据口径</b> 信号来自 Hyperliquid <b>主网</b>真实盘口/资金费/持仓量；下单指向 <b>testnet</b>。
+       两者刻意不同——testnet 盘口太薄，无法产生有意义的信号。
+       <div class="note">评分权重复刻自 Mentis 公开方法论（聪明钱30% / 技术25% / 资金流25% / 情绪20% / 风险罚分-20%），
+       未调用其任何私有接口。聪明钱维度当前为零权重占位——真实实现需要有标注的钱包集，那是需要授权的数据。</div>`;
+
+    $('meta').innerHTML = [
+      ['最近扫描', s.computedAt ? new Date(s.computedAt).toLocaleTimeString() : '—'],
+      ['扫描标的', s.decisions.length],
+      ['本次耗时', (s.durationMs/1000).toFixed(1)+'s'],
+      ['单笔上限', fmt(s.config.limits.maxOrderNotional)],
+      ['总敞口上限', fmt(s.config.limits.maxTotalExposure)],
+      ['熔断回撤', s.config.limits.killSwitchDrawdownPct + '%'],
+    ].map(([l,v]) => `<div class="mcard"><div class="mlabel">${l}</div><div class="mval">${v}</div></div>`).join('');
+
+    $('grid').innerHTML = s.decisions.length
+      ? s.decisions.map(card).join('')
+      : `<div class="empty">${s.lastError ? '扫描失败：'+s.lastError : '暂无数据，点击「立即扫描」'}</div>`;
+  } catch (e) {
+    $('grid').innerHTML = `<div class="empty">连接引擎失败：${e.message}</div>`;
+  }
+}
+
+async function loadLedger() {
+  try {
+    const l = await (await fetch('/api/attestations')).json();
+    if (!l.items || !l.items.length) { $('ledger').innerHTML=''; return; }
+    $('ledger').innerHTML = `<div class="led">
+      <div class="led-h">链上决策存证 · Kite testnet · 共 ${l.count} 条</div>
+      ${l.items.slice(0,6).map(i => `<div class="led-r">
+        <b style="min-width:52px">${i.coin}</b>
+        <span style="color:${i.action==='open_long'?'var(--green)':'var(--red)'}">${i.action}</span>
+        <span style="color:var(--dim)">comp ${Number(i.composite).toFixed(3)}</span>
+        <span style="color:var(--dim)">${new Date(i.attestedAt).toLocaleTimeString()}</span>
+        <a href="${i.explorerUrl}" target="_blank" rel="noopener">${i.txHash}</a>
+      </div>`).join('')}
+    </div>`;
+  } catch {}
+}
+
+async function forceTick() {
+  const b = $('btn'); b.disabled = true; b.textContent = '扫描中…';
+  try { await fetch('/api/scan', {method:'POST'}); await load(); }
+  finally { b.disabled = false; b.textContent = '立即扫描'; }
+}
+
+load(); loadLedger();
+setInterval(() => { load(); loadLedger(); }, 15000);
+</script>
+</body>
+</html>
