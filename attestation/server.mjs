@@ -193,15 +193,24 @@ const server = createServer(async (req, res) => {
   }
 
   const settle = await facilitate("settle", body);
-  if (!settle.ok) {
+
+  // The facilitator returns HTTP 200 with {success:false, errorReason:"..."} on
+  // an on-chain failure. Checking only res.ok records a phantom attestation
+  // with an empty tx hash — i.e. it looks settled and is not. Fail on both.
+  const txHash =
+    settle.json?.transaction || settle.json?.txHash || settle.json?.transactionHash || null;
+
+  if (!settle.ok || settle.json?.success === false || !txHash) {
+    console.error(
+      `[attest] settlement failed: ${settle.json?.errorReason ?? settle.status} ` +
+        `(${decision.coin} ${decision.action})`,
+    );
     return send(402, {
       error: "settlement failed",
+      errorReason: settle.json?.errorReason ?? null,
       detail: settle.json ?? settle.text.slice(0, 400),
     });
   }
-
-  const txHash =
-    settle.json?.transaction ?? settle.json?.txHash ?? settle.json?.transactionHash ?? null;
 
   const record = {
     decisionHash: decisionHash(decision),
