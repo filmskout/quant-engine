@@ -261,6 +261,66 @@ button:disabled{opacity:.45;cursor:wait;transform:none}
 footer{padding:20px 22px;font-size:12px;color:var(--faint);line-height:1.75;
   border-radius:14px;background:var(--panel);border:1px solid var(--border)}
 footer b{color:var(--amber)}
+
+/* ═══ responsive: tighter desktop + mobile ═══ */
+@media(max-width:768px){
+  .wrap{padding:10px 10px 32px}
+  header{padding:10px 12px;gap:10px;position:static;border-radius:12px;margin-bottom:10px}
+  .bname{font-size:14px}.btag{font-size:10px}
+  .mark{width:34px;height:34px;font-size:17px;border-radius:9px}
+  .navlinks{display:none}
+  .chip{font-size:9.5px;padding:4px 9px}
+  button{padding:8px 14px;font-size:10px}
+  .intro{padding:16px 14px}
+  .intro h1{font-size:18px}
+  .intro .lede{font-size:13px}
+  .pipe{grid-template-columns:1fr 1fr;gap:7px}
+  .step .t{font-size:13px}.step .d{font-size:11px}.step .src{font-size:9px}
+  .hero{height:280px;margin-bottom:10px}
+  .hero-t{font-size:9px}.hero-t span{display:none}
+  .hero-legend{font-size:8.5px}
+  .hero-stat{font-size:9px;padding:3px 7px}
+  .sci{padding:14px 12px;margin-bottom:10px}
+  .sci-grid{grid-template-columns:1fr}
+  .meta{grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+  .mcard{padding:8px 10px}.mlabel{font-size:8px}.mval{font-size:13px}
+  .grid{grid-template-columns:1fr;gap:10px;margin-bottom:10px}
+  .card{padding:13px}
+  .cbody{grid-template-columns:1fr}
+  .radar{width:120px;height:120px;margin:0 auto 8px}
+  .coin{font-size:17px}.px{font-size:12px}
+  .cnum{font-size:22px}
+  .comp{padding:9px;gap:9px}
+  .reason{font-size:12px;padding:9px}
+  .foot{gap:5px}.tag{font-size:9px;padding:3px 7px}
+  .myst{padding:14px 12px}
+  .myst-grid{grid-template-columns:1fr}
+  .wuxing{width:180px;height:180px}
+  .pillars{grid-template-columns:repeat(2,1fr);gap:6px}
+  .pil .gz{font-size:20px}
+  .gauge{padding:10px}
+  #agCv{width:160px;height:100px}
+  .g-num{font-size:24px}
+  .led{padding:12px}
+  .led-r{font-size:10px;gap:7px;padding:5px 7px}
+  .led-r a{font-size:9px}
+  footer{padding:14px;font-size:11px}
+  .sec-h{margin-bottom:8px}.sec-t{font-size:10.5px;letter-spacing:1.6px}
+  .sec-s{font-size:11px}
+  .panel{border-radius:12px}
+  .warnbar{font-size:11px;padding:9px 10px}
+}
+/* tighter desktop spacing */
+@media(min-width:769px){
+  .intro{padding:22px 24px;margin-bottom:11px}
+  .hero{margin-bottom:11px}
+  .sci{padding:16px 18px;margin-bottom:11px}
+  .meta{margin-bottom:11px}
+  .grid{margin-bottom:11px}
+  .myst{padding:16px 18px;margin-bottom:11px}
+  .led{margin-bottom:11px}
+  header{margin-bottom:11px}
+}
 </style>
 </head>
 <body>
