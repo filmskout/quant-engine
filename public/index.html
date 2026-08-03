@@ -220,16 +220,19 @@ button:disabled{opacity:.45;cursor:wait;transform:none}
 .narr{font-size:13px;line-height:1.75;color:var(--dim);padding:12px 14px;border-radius:11px;
   background:rgba(0,0,0,.24);border-left:2px solid var(--gold)}
 .gauge{text-align:center;padding:14px}
-#agCv{width:190px;height:120px;display:block;margin:0 auto}
-.g-num{font-family:var(--disp);font-size:31px;font-weight:900;color:var(--gold);margin-top:-30px}
+#agCv{width:200px;height:124px;display:block;margin:0 auto}
+.g-num{font-family:var(--disp);font-size:29px;font-weight:900;color:var(--gold);margin-top:6px}
 .g-lb{font-size:11.5px;color:var(--dim);margin-top:6px;line-height:1.6}
 .g-lb b{color:var(--tx)}
 .vs{display:flex;gap:8px;margin-top:12px;font-size:11.5px}
 .vs>div{flex:1;text-align:center;padding:9px 6px;border-radius:9px;background:rgba(0,0,0,.24)}
 .vs .k{font-family:var(--disp);font-size:9.5px;color:var(--faint);letter-spacing:.9px}
 .vs .v{font-family:var(--mono);font-size:14px;margin-top:4px}
-.ci{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:7px;line-height:1.7}
+.ci{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:9px;line-height:1.85;
+  text-align:left;padding:9px 11px;border-radius:9px;background:rgba(0,0,0,.26)}
 .ci b{color:var(--dim);font-weight:500}
+.verdict{font-size:11.5px;line-height:1.65;margin-top:10px;padding:10px 12px;border-radius:9px;
+  background:rgba(61,220,151,.06);border-left:2px solid rgba(61,220,151,.5);text-align:left}
 .mbti-pick{margin-top:14px;padding-top:13px;border-top:1px solid rgba(232,194,106,.18);
   text-align:left}
 .mbti-pick label{font-family:var(--disp);font-size:9.5px;letter-spacing:1.1px;
@@ -404,8 +407,10 @@ footer b{color:var(--amber)}
       <div><b>这一层不参与任何交易决策。</b>
         八字、紫微、MBTI 对金融市场没有已证实的预测力，因此它与驱动交易的综合评分在代码层面<b>完全隔离</b>
         （<span class="kbd">metaphysics.ts</span> 从不被评分模块引用，且在 composite 算完之后才计算）。
-        保留它有两个正当理由：一是文化视觉表达；二是并排跑起来后，
-        右侧的<b>一致率</b>就是一个用真实数据做的科普实验——样本足够时它应该收敛到 50% 上下，也就是抛硬币。
+        保留它有两个正当理由：一是文化视觉表达；二是并排跑起来后，右侧就成了一个用真实数据做的科普实验。
+        <br><b>注意对照标准不是 50%。</b>玄学方向偏多（约 55% 看多），而行情平淡时量化几乎全是「观望」——
+        两个分布本就不重叠，拿裸一致率去比 50% 会把「无信息」误读成「强烈反相关」。
+        正确做法是比<b>独立基线</b>（由实测边缘分布算出的 Σ P(量化=d)×P(玄学=d)），看<b>超额</b>是否趋近 0。
         <br>顺带一提：干支纪日是确定性历法算术，下面的四柱是<b>真算的</b>，已用 2000-01-01 戊午等已知日期校验。</div>
     </div>
     <div class="myst-grid">
@@ -421,8 +426,9 @@ footer b{color:var(--amber)}
       <div class="gauge">
         <canvas id="agCv"></canvas>
         <div class="g-num" id="agNum">—</div>
-        <div class="g-lb">玄学与量化<b>方向一致率</b><br>
+        <div class="g-lb">超额一致率 · <b>vs 独立基线</b><br>
           <span id="agSub" style="font-family:var(--mono);font-size:11px">样本累积中…</span></div>
+        <div class="verdict" id="agVerdict"></div>
         <div class="ci" id="agCi"></div>
         <div class="vs">
           <div><div class="k">量化方向</div><div class="v" id="vsQ">—</div></div>
@@ -798,27 +804,17 @@ function drawWuxing() {
 requestAnimationFrame(drawWuxing);
 
 // ── agreement gauge: the honest payoff of the metaphysics layer ──
-function drawGauge(rate, samples) {
+function drawGauge(rate, samples, baseline) {
   const cv = $('agCv'); if (!cv) return;
-  const dpr = devicePixelRatio || 1, W = 190, H = 120;
+  const dpr = devicePixelRatio || 1, W = 200, H = 124;
   cv.width = W * dpr; cv.height = H * dpr;
   const g = cv.getContext('2d');
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, W, H);
-  const cx = W / 2, cy = H - 16, R = 74;
+  const cx = W / 2, cy = H - 16, R = 76;
 
   g.beginPath(); g.arc(cx, cy, R, Math.PI, 0);
   g.strokeStyle = 'rgba(255,255,255,.07)'; g.lineWidth = 11; g.stroke();
-
-  // the 50% mark is the interesting line: coin-flip
-  const half = Math.PI + Math.PI * 0.5;
-  g.beginPath();
-  g.moveTo(cx + Math.cos(half) * (R - 9), cy + Math.sin(half) * (R - 9));
-  g.lineTo(cx + Math.cos(half) * (R + 9), cy + Math.sin(half) * (R + 9));
-  g.strokeStyle = 'rgba(255,255,255,.32)'; g.lineWidth = 1.4; g.stroke();
-  g.font = '8.5px JetBrains Mono, monospace';
-  g.fillStyle = 'rgba(180,195,235,.5)'; g.textAlign = 'center';
-  g.fillText('50% 抛硬币', cx, cy - R - 6);
 
   if (samples > 0) {
     const end = Math.PI + Math.PI * Math.max(0, Math.min(1, rate));
@@ -826,8 +822,25 @@ function drawGauge(rate, samples) {
     const grd = g.createLinearGradient(cx - R, 0, cx + R, 0);
     grd.addColorStop(0, '#e8c26a'); grd.addColorStop(1, '#ffb020');
     g.strokeStyle = grd; g.lineWidth = 11; g.lineCap = 'round';
-    g.shadowBlur = 13; g.shadowColor = 'rgba(232,194,106,.55)';
+    g.shadowBlur = 13; g.shadowColor = 'rgba(232,194,106,.5)';
+    g.stroke(); g.shadowBlur = 0; g.lineCap = 'butt';
+  }
+
+  // The reference line is the independence baseline, computed from the observed
+  // marginals — NOT a hardcoded 50%. With mismatched direction distributions,
+  // 50% is simply the wrong thing to compare against.
+  const b = Math.max(0, Math.min(1, baseline || 0));
+  if (b > 0) {
+    const a = Math.PI + Math.PI * b;
+    g.beginPath();
+    g.moveTo(cx + Math.cos(a) * (R - 10), cy + Math.sin(a) * (R - 10));
+    g.lineTo(cx + Math.cos(a) * (R + 10), cy + Math.sin(a) * (R + 10));
+    g.strokeStyle = 'rgba(61,220,151,.9)'; g.lineWidth = 2;
+    g.shadowBlur = 7; g.shadowColor = 'rgba(61,220,151,.7)';
     g.stroke(); g.shadowBlur = 0;
+    g.font = '8.5px JetBrains Mono, monospace';
+    g.fillStyle = 'rgba(61,220,151,.85)'; g.textAlign = 'center';
+    g.fillText(`独立基线 ${(b * 100).toFixed(0)}%`, cx, cy - R - 6);
   }
 }
 function bar(label, v, span) {
@@ -957,17 +970,37 @@ function onMbti(){
 async function loadAgreement() {
   try {
     const ag = await (await fetch('api/agreement')).json();
-    drawGauge(ag.rate, ag.samples);
-    $('agNum').textContent = ag.samples ? (ag.rate*100).toFixed(1)+'%' : '—';
+    // The headline number is the EXCESS over the independence baseline, not the
+    // raw agreement rate. The two direction distributions are badly mismatched
+    // (omen skews long, a quiet market makes quant skew flat), so a raw rate
+    // compared against 50% makes an uninformative signal look anti-correlated.
+    const exc = (ag.excess || 0) * 100;
+    drawGauge(ag.rate, ag.samples, ag.expectedRate || 0);
+    $('agNum').textContent = ag.samples ? (exc >= 0 ? '+' : '') + exc.toFixed(1) + 'pp' : '—';
+    $('agNum').style.color = Math.abs(exc) < 3 ? 'var(--dim)' : 'var(--gold)';
     $('agSub').textContent = ag.samples
-      ? `${ag.agreements}/${ag.samples} 次方向一致`
+      ? `一致 ${(ag.rate*100).toFixed(1)}% vs 独立基线 ${((ag.expectedRate||0)*100).toFixed(1)}%`
       : '样本累积中…';
+
     const ci = ag.ci95 || [0,0];
+    const pct = o => Object.entries(o||{})
+      .map(([k,v]) => `${({long:'多',short:'空',flat:'平'})[k]||k}${(v*100).toFixed(0)}%`).join(' ');
     $('agCi').innerHTML = ag.samples
-      ? `95% 置信区间 <b>${(ci[0]*100).toFixed(1)}–${(ci[1]*100).toFixed(1)}%</b><br>
-         覆盖 <b>${ag.shichenCovered||0}</b> 个时辰 ·
-         <span title="同一时辰内的样本共享时间项,并非完全独立;区间宽度是乐观估计">独立性有限 ⓘ</span>`
+      ? `样本 <b>${ag.samples}</b> · 覆盖 <b>${ag.shichenCovered||0}</b> 时辰 ·
+         <span title="同一时辰内的样本共享玄学的时间项,并非完全独立;区间宽度是乐观估计">独立性有限 ⓘ</span><br>
+         量化方向 <b>${pct(ag.quantDist)}</b><br>玄学方向 <b>${pct(ag.omenDist)}</b><br>
+         一致率 95%CI <b>${(ci[0]*100).toFixed(1)}–${(ci[1]*100).toFixed(1)}%</b>`
       : '';
+
+    const v = $('agVerdict');
+    if (v) {
+      v.innerHTML = !ag.samples ? ''
+        : Math.abs(exc) < 3
+          ? `<b style="color:var(--jade)">超额趋近 0 → 玄学不携带量化尚未包含的信息</b><br>
+             这正是预期结果,也是这一层存在的意义。`
+          : `<b style="color:var(--amber)">超额 ${exc.toFixed(1)}pp</b> — 样本仍少且非完全独立,
+             不足以断言相关性;继续累积。`;
+    }
   } catch {}
 }
 

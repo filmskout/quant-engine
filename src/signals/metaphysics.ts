@@ -310,10 +310,28 @@ export interface AgreementStat {
   shichenCovered?: number;
   /** Wilson 95% interval on the rate — meaningful only if samples are independent. */
   ci95?: [number, number];
+  /**
+   * Expected agreement rate under independence, computed from the observed
+   * marginal distributions: Σ P(quant=d) × P(omen=d).
+   *
+   * This is the number to compare `rate` against — NOT 50%. The two direction
+   * distributions are badly mismatched (the omen skews long ~55%, while a quiet
+   * market makes the quant skew flat), so a naive 50% baseline makes an
+   * uninformative signal look strongly *anti*-correlated. Measured 17.8% against
+   * a 50% baseline was an artefact of exactly that mistake.
+   */
+  expectedRate?: number;
+  /** rate − expectedRate. This is the actual effect size. ~0 means no information. */
+  excess?: number;
+  quantDist?: Record<string, number>;
+  omenDist?: Record<string, number>;
 }
 
 const tally = new Map<string, { n: number; hit: number }>();
 const shichenSeen = new Set<string>();
+/** Marginal direction counts, needed for the independence baseline. */
+const quantDirCount: Record<string, number> = { long: 0, short: 0, flat: 0 };
+const omenDirCount: Record<string, number> = { long: 0, short: 0, flat: 0 };
 
 /** Wilson score interval — better than normal approximation at small n. */
 function wilson(hit: number, n: number): [number, number] {
@@ -330,16 +348,42 @@ export function exportTally() {
   return {
     tally: Object.fromEntries(tally),
     shichen: [...shichenSeen],
+    quantDir: { ...quantDirCount },
+    omenDir: { ...omenDirCount },
   };
 }
 
 export function importTally(snap: unknown) {
-  const s = snap as { tally?: Record<string, { n: number; hit: number }>; shichen?: string[] };
+  const s = snap as {
+    tally?: Record<string, { n: number; hit: number }>;
+    shichen?: string[];
+    quantDir?: Record<string, number>;
+    omenDir?: Record<string, number>;
+  };
   if (!s?.tally) return;
   for (const [k, v] of Object.entries(s.tally)) {
     if (typeof v?.n === "number" && typeof v?.hit === "number") tally.set(k, { ...v });
   }
   (s.shichen ?? []).forEach((x) => shichenSeen.add(x));
+
+  // Stores written before marginal tracking existed have no quantDir/omenDir.
+  // Without them the independence baseline would read 0, which would make the
+  // excess look like the full agreement rate. Reset the tally in that case so
+  // the pairing and its baseline are always consistent with each other.
+  const hasMarginals =
+    s.quantDir && s.omenDir &&
+    Object.values(s.quantDir).reduce((a, b) => a + b, 0) > 0;
+
+  if (!hasMarginals) {
+    console.log("[metaphysics] legacy store without marginals — resetting tally to keep the baseline consistent");
+    tally.clear();
+    return;
+  }
+
+  for (const d of ["long", "short", "flat"]) {
+    if (typeof s.quantDir?.[d] === "number") quantDirCount[d] = s.quantDir[d];
+    if (typeof s.omenDir?.[d] === "number") omenDirCount[d] = s.omenDir[d];
+  }
 }
 
 /**
@@ -362,16 +406,39 @@ export function recordAgreement(
     tally.set(k, cur);
   }
   if (shichen) shichenSeen.add(shichen);
+  if (quantDir in quantDirCount) quantDirCount[quantDir] += 1;
+  if (omenDir in omenDirCount) omenDirCount[omenDir] += 1;
 }
 
 export function agreementRate(coin?: string): AgreementStat {
   const k = coin ? `C:${coin}` : "ALL";
   const t = tally.get(k) ?? { n: 0, hit: 0 };
+  const rate = t.n ? t.hit / t.n : 0;
+
+  // Baseline under independence: Σ P(quant=d) × P(omen=d).
+  const qTot = Object.values(quantDirCount).reduce((a, b) => a + b, 0);
+  const oTot = Object.values(omenDirCount).reduce((a, b) => a + b, 0);
+  let expectedRate = 0;
+  if (qTot && oTot) {
+    for (const d of ["long", "short", "flat"]) {
+      expectedRate += (quantDirCount[d] / qTot) * (omenDirCount[d] / oTot);
+    }
+  }
+
+  const frac = (o: Record<string, number>, tot: number) =>
+    tot
+      ? Object.fromEntries(Object.entries(o).map(([k2, v]) => [k2, v / tot]))
+      : { long: 0, short: 0, flat: 0 };
+
   return {
     samples: t.n,
     agreements: t.hit,
-    rate: t.n ? t.hit / t.n : 0,
+    rate,
     shichenCovered: shichenSeen.size,
     ci95: wilson(t.hit, t.n),
+    expectedRate,
+    excess: t.n ? rate - expectedRate : 0,
+    quantDist: frac(quantDirCount, qTot),
+    omenDist: frac(omenDirCount, oTot),
   };
 }
